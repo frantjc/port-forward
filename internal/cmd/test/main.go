@@ -23,8 +23,8 @@ func main() {
 			"iptables",
 			append([]string{"-t", "nat", "-A"}, iptablesCommonArgs...)...,
 		)
-		upnpcCommonArgs = []string{newSourceIPAddr, "80", "80", "TCP"}
-		upnpcAdd        = exec.CommandContext(ctx, "upnpc", append([]string{"-a"}, upnpcCommonArgs...)...)
+		upnpcCommonArgs = []string{"80", "TCP"}
+		upnpcAdd        = exec.CommandContext(ctx, "upnpc", append([]string{"-a", newSourceIPAddr, "80"}, upnpcCommonArgs...)...)
 		upnpcDelete     = exec.CommandContext(ctx, "upnpc", append([]string{"-d"}, upnpcCommonArgs...)...)
 		iptablesDelete  = exec.CommandContext(ctx,
 			"iptables",
