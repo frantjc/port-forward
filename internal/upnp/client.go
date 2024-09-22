@@ -70,7 +70,7 @@ func (c *Client) AddPortMapping(ctx context.Context, pm *PortMapping) error {
 func (c *Client) GetServiceIPAddress(context.Context) (net.IP, error) {
 	location := c.GoUPnPClient.GetServiceClient().Location
 
-	ips, err := net.LookupIP(location.Host)
+	ips, err := net.LookupIP(location.Hostname())
 	if err != nil {
 		return nil, err
 	}
