@@ -1,6 +1,7 @@
 package portfwdminiupnp
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os/exec"
@@ -50,7 +51,15 @@ func (p *PortForwarder) AddPortMapping(ctx context.Context, pm *portfwd.PortMapp
 		args = append(args, pm.RemoteHost)
 	}
 
-	return exec.CommandContext(ctx,
-		"upnpc", args...,
-	).Run()
+	var (
+		cmd = exec.CommandContext(ctx, "upnpc", args...)
+		logs = new(bytes.Buffer)
+	)
+	cmd.Stdout = logs
+	cmd.Stderr = logs
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("%w: %s", err, logs.String())
+	}
+
+	return nil
 }
