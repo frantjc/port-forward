@@ -64,5 +64,9 @@ func (p *PortForwarder) AddPortMapping(ctx context.Context, pm *portfwd.PortMapp
 		return err
 	}
 
-	return exec.CommandContext(ctx, tmp.Name()).Run()
+	cmd := exec.CommandContext(ctx, tmp.Name())
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	return cmd.Run()
 }
