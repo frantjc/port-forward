@@ -28,7 +28,7 @@ import (
 
 	"github.com/coreos/go-iptables/iptables"
 	"github.com/frantjc/port-forward/internal/controller"
-	"github.com/frantjc/port-forward/internal/portfwd/portfwdupnp"
+	"github.com/frantjc/port-forward/internal/portfwd/portfwdminiupnp"
 	"github.com/frantjc/port-forward/internal/srcipmasq/srcipmasqiptables"
 	"github.com/frantjc/port-forward/internal/upnp"
 	xos "github.com/frantjc/x/os"
@@ -153,7 +153,7 @@ func NewEntrypoint() *cobra.Command {
 				}
 
 				if err := (&controller.UPnPServiceReconciler{
-					PortForwarder: portfwdupnp.NewPortForwarder(
+					PortForwarder: portfwdminiupnp.NewPortForwarder(
 						upnpClient,
 						&srcipmasqiptables.SourceIPAddressMasqer{IPTables: iptablesCmd},
 					),

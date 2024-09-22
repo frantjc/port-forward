@@ -1,4 +1,4 @@
-package portfwdminiupnpc
+package portfwdminiupnp
 
 import (
 	"context"
