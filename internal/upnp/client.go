@@ -216,11 +216,9 @@ func NewClient(ctx context.Context, opts ...NewClientOpt) (*Client, error) {
 }
 
 func getOneGoUPnPClient(ctx context.Context, f getClients) (GoUPnPClient, error) {
-	clients, errs, err := f(ctx)
+	clients, _, err := f(ctx)
 	if err != nil {
 		return nil, err
-	} else if len(errs) != 0 {
-		return nil, errors.Join(errs...)
 	} else if len(clients) == 0 {
 		return nil, ErrNoClients
 	}
