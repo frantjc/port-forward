@@ -1,0 +1,20 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: test
+  annotations:
+    pf.frantj.cc/forward: "yes"
+spec:
+  type: LoadBalancer
+  ports:
+    - name: simple
+      port: 80
+      targetPort: 6666
+    - name: excluded
+      port: 443
+      targetPort: 7777
+    - name: remapped
+      port: 3000
+      targetPort: 8888
+  selector: {}

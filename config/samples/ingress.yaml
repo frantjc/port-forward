@@ -1,0 +1,23 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: test
+  annotations:
+    pf.frantj.cc/forward: "1"
+spec:
+  tls:
+    - hosts:
+        - test.frantj.cc
+      secretName: test-tls
+  rules:
+    - host: test.frantj.cc
+      http:
+        paths:
+          - backend:
+              service:
+                name: test
+                port:
+                  number: 443
+            path: /
+            pathType: Prefix
