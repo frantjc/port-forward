@@ -26,8 +26,10 @@ import (
 	"runtime"
 	"syscall"
 
+	"github.com/coreos/go-iptables/iptables"
 	"github.com/frantjc/port-forward/internal/controller"
-	"github.com/frantjc/port-forward/internal/portfwd/portfwdminiupnp"
+	"github.com/frantjc/port-forward/internal/portfwd/portfwdupnp"
+	"github.com/frantjc/port-forward/internal/srcipmasq/srcipmasqiptables"
 	"github.com/frantjc/port-forward/internal/upnp"
 	xos "github.com/frantjc/x/os"
 	"github.com/go-logr/logr"
@@ -137,8 +139,21 @@ func NewEntrypoint() *cobra.Command {
 					return err
 				}
 
+				family := iptables.ProtocolIPv4
+				if upnpClient.GetSourceIPAddress(ctx).To4() == nil {
+					family = iptables.ProtocolIPv6
+				}
+
+				ipt, err := iptables.New(iptables.IPFamily(family))
+				if err != nil {
+					return err
+				}
+
 				if err := (&controller.UPnPServiceReconciler{
-					PortForwarder: portfwdminiupnp.NewPortForwarder(upnpClient),
+					PortForwarder: portfwdupnp.NewPortForwarder(
+						upnpClient,
+						&srcipmasqiptables.SourceIPAddressMasqer{IPTables: ipt},
+					),
 				}).SetupWithManager(mgr); err != nil {
 					return err
 				}
