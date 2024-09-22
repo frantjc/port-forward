@@ -2,6 +2,7 @@ package portfwdupnp
 
 import (
 	"context"
+	"time"
 
 	"github.com/frantjc/port-forward/internal/portfwd"
 	"github.com/frantjc/port-forward/internal/srcipmasq"
@@ -34,6 +35,8 @@ func (p *PortForwarder) AddPortMapping(ctx context.Context, pm *portfwd.PortMapp
 	defer func() {
 		_ = restore()
 	}()
+
+	time.Sleep(time.Second*9)
 
 	return p.Client.AddPortMapping(ctx, pm)
 }
