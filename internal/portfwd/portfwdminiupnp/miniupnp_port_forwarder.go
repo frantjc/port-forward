@@ -36,12 +36,13 @@ func NewPortForwarder(client *upnp.Client) portfwd.PortForwarder {
 func (p *PortForwarder) AddPortMapping(ctx context.Context, pm *portfwd.PortMapping) error {
 	destination, err := p.GetServiceIPAddress(ctx)
 	if err != nil {
-		return fmt.Errorf("get service ip address: %w", err)
+		return err
 	}
 
-	source := p.GetSourceIPAddress(ctx)
-
-	script := getScript(source.String(), destination.String(), pm)
+	var (
+		source = p.GetSourceIPAddress(ctx)
+		script = getScript(source.String(), destination.String(), pm)
+	)
 
 	tmp, err := os.CreateTemp("", "")
 	if err != nil {
