@@ -5,20 +5,12 @@ metadata:
   creationTimestamp: null
   name: manager-role
 rules:
-- apiGroups:
-  - ""
-  resources:
-  - service
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - networking.k8s.io
-  resources:
-  - ingress
-  verbs:
-  - get
-  - list
-  - update
-  - watch
+  - apiGroups:
+      - ""
+    resources:
+      - service
+    verbs:
+      - get
+      - list
+      - watch
+      - update

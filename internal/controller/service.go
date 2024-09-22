@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/frantjc/port-forward/internal/extip"
 	"github.com/frantjc/port-forward/internal/portfwd"
 	"github.com/frantjc/port-forward/internal/upnp"
 	xslice "github.com/frantjc/x/slice"
@@ -16,19 +15,19 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 type UPnPServiceReconciler struct {
 	portfwd.PortForwarder
-	extip.ExternalIPAddressGetter
 	client.Client
 	record.EventRecorder
 }
 
 const (
+	Finalzier					= "pf.frantj.cc/finalizer"
 	ForwardAnnotation           = "pf.frantj.cc/forward"
 	PortMapAnnotation           = "pf.frantj.cc/port-map"
-	IPAddressListAnnotation     = "pf.frantj.cc/ip-addresses"
 	UPnPRemoteHostAnnotation    = "upnp.pf.frantj.cc/remote-host"
 	UPnPEnabledAnnotation       = "upnp.pf.frantj.cc/enabled"
 	UPnPDescriptionAnnotation   = "upnp.pf.frantj.cc/description"
@@ -62,6 +61,19 @@ func (r *UPnPServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	if service.Spec.Type != corev1.ServiceTypeLoadBalancer {
 		r.Eventf(service, corev1.EventTypeWarning, "InvalidAnnotation", `invalid truthy value "%s" in "%s" annotation on non-LoadBalancer Service`, forward, ForwardAnnotation)
+		return ctrl.Result{}, nil
+	}
+
+	if !service.GetDeletionTimestamp().IsZero() {
+		// TODO: Delete the PortMapping. Not of the utmost importance due to the lease duration
+		// automatically expiring it at some point.
+
+		if controllerutil.RemoveFinalizer(service, Finalzier) {
+			if err := r.Client.Update(ctx, service); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+
 		return ctrl.Result{}, nil
 	}
 
@@ -101,20 +113,6 @@ func (r *UPnPServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		requeueAfter = leaseDuration / 2
 	}
 
-	ipsl, ok := service.Annotations[IPAddressListAnnotation]
-	var ipAddresses []net.IP
-	if ok {
-		ipAddresses = xslice.Map(strings.Split(ipsl, ","), func(ips string, _ int) net.IP {
-			return net.ParseIP(ips)
-		})
-	} else {
-		ipAddresses = xslice.Map(service.Status.LoadBalancer.Ingress, func(ingress corev1.LoadBalancerIngress, _ int) net.IP {
-			return net.ParseIP(ingress.IP)
-		})
-	}
-
-	delete(service.Annotations, IPAddressListAnnotation)
-
 	for _, port := range service.Spec.Ports {
 		if xslice.Includes([]corev1.Protocol{corev1.ProtocolTCP, corev1.ProtocolUDP}, port.Protocol) {
 			externalPort, ok := portMap[port.Port]
@@ -139,23 +137,22 @@ func (r *UPnPServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 				return ctrl.Result{}, nil
 			}
 
-			for _, ipAddress := range ipAddresses {
+			for _, ingress := range service.Status.LoadBalancer.Ingress {
 				if err := r.AddPortMapping(ctx, &upnp.PortMapping{
 					RemoteHost:     service.Annotations[UPnPRemoteHostAnnotation],
 					ExternalPort:   externalPort,
 					Protocol:       upnp.Protocol(port.Protocol),
 					InternalPort:   port.Port,
-					InternalClient: ipAddress,
+					InternalClient: net.ParseIP(ingress.IP),
 					Enabled: !ok || xslice.Some([]string{"yes", "y", "1", "true"}, func(truthy string, _ int) bool {
 						return strings.EqualFold(enabled, truthy)
 					}),
 					Description:   description,
 					LeaseDuration: leaseDuration,
 				}); err != nil {
-					r.Eventf(service, corev1.EventTypeWarning, "FailedPortMapping", `mapping "%d" to "%s:%d" for port "%s" failed with: %s`, externalPort, ipAddress, port.Port, portName, err.Error())
+					r.Eventf(service, corev1.EventTypeWarning, "FailedPortMapping", `mapping "%d" to "%s:%d" for port "%s" failed with: %s`, externalPort, ingress.IP, port.Port, portName, err.Error())
 				} else {
-					service.Annotations[IPAddressListAnnotation] = fmt.Sprintf("%s,%s", service.Annotations[IPAddressListAnnotation], ipAddress)
-					r.Eventf(service, corev1.EventTypeNormal, "AddedPortMapping", `mapped "%d" to "%s:%d" for port "%s"`, externalPort, ipAddress, port.Port, portName)
+					r.Eventf(service, corev1.EventTypeNormal, "AddedPortMapping", `mapped "%d" to "%s:%d" for port "%s"`, externalPort, ingress.IP, port.Port, portName)
 				}
 			}
 		} else {
@@ -163,24 +160,10 @@ func (r *UPnPServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		}
 	}
 
-	externalIPAddress, err := r.GetExternalIPAddress(ctx)
-	if err != nil {
-		r.Eventf(service, corev1.EventTypeWarning, "FailedGetExternalIPAddress", "get external IP address failed with: %s", err.Error())
-		return ctrl.Result{}, nil
-	}
-
-	if err = r.Client.Update(ctx, service); err != nil {
-		return ctrl.Result{}, err
-	}
-
-	service.Status.LoadBalancer.Ingress = []corev1.LoadBalancerIngress{
-		{
-			IP: externalIPAddress.String(),
-		},
-	}
-
-	if err = r.Client.Status().Update(ctx, service); err != nil {
-		return ctrl.Result{}, err
+	if controllerutil.AddFinalizer(service, Finalzier) {
+		if err := r.Client.Update(ctx, service); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	return ctrl.Result{RequeueAfter: requeueAfter}, nil
