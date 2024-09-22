@@ -81,7 +81,7 @@ func NewEntrypoint() *cobra.Command {
 		healthPort, metricsPort, pprofPort, webhookPort int
 		leaderElection                                  bool
 		cmd                                             = &cobra.Command{
-			Use:           "homelab",
+			Use:           "manager",
 			Version:       SemVer(),
 			SilenceErrors: true,
 			SilenceUsage:  true,
@@ -167,7 +167,7 @@ func NewEntrypoint() *cobra.Command {
 	)
 
 	cmd.SetVersionTemplate("{{ .Name }}{{ .Version }} " + runtime.Version() + "\n")
-	cmd.Flags().CountVarP(&verbosity, "verbose", "V", "verbosity for homelab")
+	cmd.Flags().CountVarP(&verbosity, "verbose", "V", "verbosity for manager")
 
 	// Just allow this flag to be passed, it's parsed by ctrl.GetConfig().
 	cmd.PersistentFlags().String("kubeconfig", "", "Kube config")

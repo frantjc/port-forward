@@ -11,6 +11,7 @@ import (
 	"github.com/frantjc/port-forward/internal/portfwd"
 	"github.com/frantjc/port-forward/internal/upnp"
 	xslice "github.com/frantjc/x/slice"
+	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -39,10 +40,13 @@ const (
 
 func (r *UPnPServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var (
+		log 		= logr.FromContextOrDiscard(ctx)
 		service      = &corev1.Service{}
 		requeueAfter = time.Minute * 15
 		portMap      = map[int32]int32{}
 	)
+
+	log.Info("begin reconcile")
 
 	if err := r.Client.Get(ctx, req.NamespacedName, service); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
