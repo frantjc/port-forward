@@ -11,7 +11,7 @@ func main() {
 		ctx                  = context.Background()
 		routerIPAddr         = "192.168.0.1"
 		originalSourceIPAddr = "192.168.0.3"
-		newSourceIPAddr      = "192.168.0.201"
+		newSourceIPAddr      = os.Args[1]
 		iptablesCommonArgs   = []string{
 			"POSTROUTING",
 			"--source", originalSourceIPAddr,
