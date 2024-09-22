@@ -5,12 +5,12 @@ import (
 	"strings"
 )
 
-// VersionCore is the SemVer version core of portfwd.
+// VersionCore is the SemVer version core of manager.
 // Meant to be be overridden at build time, but kept
 // up-to-date sometimes to best support `go install`.
 var VersionCore = "0.1.0"
 
-// SemVer returns the semantic version of portfwd as
+// SemVer returns the semantic version of manager as
 // built from VersionCore and debug build info.
 func SemVer() string {
 	semver := VersionCore

@@ -2,7 +2,6 @@ package srcipmasqiptables
 
 import (
 	"context"
-	"sync"
 
 	"github.com/coreos/go-iptables/iptables"
 	"github.com/frantjc/port-forward/internal/srcipmasq"
@@ -10,32 +9,25 @@ import (
 
 type SourceIPAddressMasqer struct {
 	*iptables.IPTables
-
-	mu sync.Mutex
 }
 
-func (m *SourceIPAddressMasqer) MasqSourceIPAddress(ctx context.Context, masq *srcipmasq.Masq) error {
+// MasqSourceIPAddress implements srcipmasq.SourceIPAddressMasqer.
+func (m *SourceIPAddressMasqer) MasqSourceIPAddress(ctx context.Context, masq *srcipmasq.Masq) (func() error, error) {
 	var (
 		table    = "nat"
 		chain    = "postrouting"
 		ruleSpec = []string{
-			"-s", masq.OriginalSource.String(),
-			"-d", masq.Destination.String(),
-			"-j", "SNAT",
+			"--source", masq.OriginalSource.String(),
+			"--destination", masq.Destination.String(),
+			"--jump", "SNAT",
 			"--to-source", masq.NewSource.String(),
 		}
 	)
 
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
 	if err := m.IPTables.Append(table, chain, ruleSpec...); err != nil {
-		return err
+		return nil, err
 	}
-
-	if err := m.IPTables.DeleteIfExists(table, chain, ruleSpec...); err != nil {
-		return err
-	}
-
-	return nil
+	return func() error {
+		return m.IPTables.DeleteIfExists(table, chain, ruleSpec...)
+	}, nil
 }

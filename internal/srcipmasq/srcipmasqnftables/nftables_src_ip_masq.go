@@ -3,7 +3,6 @@ package srcipmasqnftables
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	"github.com/frantjc/port-forward/internal/srcipmasq"
 	"github.com/google/nftables"
@@ -12,11 +11,10 @@ import (
 
 type SourceIPAddressMasqer struct {
 	*nftables.Conn
-
-	mu sync.Mutex
 }
 
-func (m *SourceIPAddressMasqer) MasqSourceIPAddress(ctx context.Context, masq *srcipmasq.Masq) error {
+// MasqSourceIPAddress implements srcipmasq.SourceIPAddressMasqer.
+func (m *SourceIPAddressMasqer) MasqSourceIPAddress(ctx context.Context, masq *srcipmasq.Masq) (func() error, error) {
 	var (
 		family nftables.TableFamily
 	)
@@ -25,11 +23,8 @@ func (m *SourceIPAddressMasqer) MasqSourceIPAddress(ctx context.Context, masq *s
 	} else if masq.Destination.To16() != nil {
 		family = nftables.TableFamilyIPv6
 	} else {
-		return fmt.Errorf(`unable to determine family of destination IP address "%s"`, masq.Destination)
+		return nil, fmt.Errorf(`unable to determine family of destination IP address "%s"`, masq.Destination)
 	}
-
-	m.mu.Lock()
-	defer m.mu.Unlock()
 
 	var (
 		table = m.Conn.AddTable(&nftables.Table{
@@ -43,7 +38,7 @@ func (m *SourceIPAddressMasqer) MasqSourceIPAddress(ctx context.Context, masq *s
 			Priority: nftables.ChainPriorityNATSource,
 			Type:     nftables.ChainTypeNAT,
 		})
-		_ = m.Conn.AddRule(&nftables.Rule{
+		rule = m.Conn.AddRule(&nftables.Rule{
 			Table: table,
 			Chain: chain,
 			Exprs: []expr.Any{
@@ -54,5 +49,7 @@ func (m *SourceIPAddressMasqer) MasqSourceIPAddress(ctx context.Context, masq *s
 		})
 	)
 
-	return m.Conn.Flush()
+	return func() error {
+		return m.Conn.DelRule(rule)
+	}, m.Conn.Flush()
 }
