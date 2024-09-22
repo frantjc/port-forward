@@ -15,7 +15,7 @@ type SourceIPAddressMasqer struct {
 func (m *SourceIPAddressMasqer) MasqSourceIPAddress(ctx context.Context, masq *srcipmasq.Masq) (func() error, error) {
 	var (
 		table    = "nat"
-		chain    = "postrouting"
+		chain    = "POSTROUTING"
 		ruleSpec = []string{
 			"--source", masq.OriginalSource.String(),
 			"--destination", masq.Destination.String(),

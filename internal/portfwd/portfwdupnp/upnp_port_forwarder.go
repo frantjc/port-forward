@@ -24,7 +24,7 @@ func (p *PortForwarder) AddPortMapping(ctx context.Context, pm *portfwd.PortMapp
 	}
 
 	restore, err := p.SourceIPAddressMasqer.MasqSourceIPAddress(ctx, &srcipmasq.Masq{
-		OriginalSource: p.GoUPnPClient.GetServiceClient().LocalAddr(),
+		OriginalSource: p.GetSourceIPAddress(ctx),
 		Destination:    destination,
 		NewSource:      pm.InternalClient,
 	})

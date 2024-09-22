@@ -140,7 +140,7 @@ func NewEntrypoint() *cobra.Command {
 				}
 
 				protocol := iptables.ProtocolIPv4
-				if upnpClient.GoUPnPClient.GetServiceClient().LocalAddr().To4() == nil {
+				if upnpClient.GetSourceIPAddress(ctx).To4() == nil {
 					protocol = iptables.ProtocolIPv6
 				}
 
