@@ -46,8 +46,6 @@ func (r *UPnPServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		portMap      = map[int32]int32{}
 	)
 
-	log.Info("begin reconcile")
-
 	if err := r.Client.Get(ctx, req.NamespacedName, service); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -57,6 +55,8 @@ func (r *UPnPServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, nil
 	}
 
+	log.Info("found forward annotation")
+
 	if !xslice.Some([]string{"yes", "y", "1", "true"}, func(truthy string, _ int) bool {
 		return strings.EqualFold(forward, truthy)
 	}) {
@@ -64,10 +64,14 @@ func (r *UPnPServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, nil
 	}
 
+	log.Info("forward annotation is truthy")
+
 	if service.Spec.Type != corev1.ServiceTypeLoadBalancer {
 		r.Eventf(service, corev1.EventTypeWarning, "InvalidAnnotation", `invalid truthy value "%s" in "%s" annotation on non-LoadBalancer Service`, forward, ForwardAnnotation)
 		return ctrl.Result{}, nil
 	}
+
+	log.Info("service is LoadBalancer")
 
 	if !service.GetDeletionTimestamp().IsZero() {
 		// TODO: Delete the PortMapping. Not of the utmost importance due to the lease duration
@@ -81,6 +85,8 @@ func (r *UPnPServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 		return ctrl.Result{}, nil
 	}
+
+	log.Info("service is not deleted")
 
 	if pm, ok := service.Annotations[PortMapAnnotation]; ok {
 		for _, ports := range strings.Split(pm, ",") {
