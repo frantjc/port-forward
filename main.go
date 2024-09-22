@@ -156,13 +156,7 @@ func NewEntrypoint() *cobra.Command {
 					PortForwarder: portfwdupnp.NewPortForwarder(
 						upnpClient,
 						&srcipmasqiptables.SourceIPAddressMasqer{IPTables: iptablesCmd},
-				),
-				}).SetupWithManager(mgr); err != nil {
-					return err
-				}
-
-				if err := (&controller.UPnPIngressReconciler{
-					ExternalIPAddressGetter: upnpClient,
+					),
 				}).SetupWithManager(mgr); err != nil {
 					return err
 				}
