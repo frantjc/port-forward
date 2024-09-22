@@ -34,7 +34,8 @@ const (
 	UPnPLeaseDurationAnnotation = "upnp.pf.frantj.cc/lease-duration"
 )
 
-//+kubebuilder:rbac:groups="",resources=service,verbs=get;list;watch
+//+kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch
+//+kubebuilder:rbac:groups="",resources=services/finalizers,verbs=update
 
 func (r *UPnPServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var (
