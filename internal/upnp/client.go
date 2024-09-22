@@ -84,7 +84,6 @@ func (c *Client) GetServiceIPAddress(context.Context) (net.IP, error) {
 	return nil, fmt.Errorf(`no IP addresses found for UPnP service location "%s"`, location)
 }
 
-
 func (c *Client) GetSourceIPAddress(context.Context) net.IP {
 	return c.GoUPnPClient.GetServiceClient().LocalAddr()
 }
