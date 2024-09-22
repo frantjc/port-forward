@@ -2,7 +2,7 @@ package portfwdupnp
 
 import (
 	"context"
-	"time"
+	"fmt"
 
 	"github.com/frantjc/port-forward/internal/portfwd"
 	"github.com/frantjc/port-forward/internal/srcipmasq"
@@ -24,6 +24,8 @@ func (p *PortForwarder) AddPortMapping(ctx context.Context, pm *portfwd.PortMapp
 		return err
 	}
 
+	fmt.Println(p.GetSourceIPAddress(ctx), "=>", pm.InternalClient, "for", destination)
+
 	restore, err := p.SourceIPAddressMasqer.MasqSourceIPAddress(ctx, &srcipmasq.Masq{
 		OriginalSource: p.GetSourceIPAddress(ctx),
 		Destination:    destination,
@@ -35,8 +37,6 @@ func (p *PortForwarder) AddPortMapping(ctx context.Context, pm *portfwd.PortMapp
 	defer func() {
 		_ = restore()
 	}()
-
-	time.Sleep(time.Second*9)
 
 	return p.Client.AddPortMapping(ctx, pm)
 }
