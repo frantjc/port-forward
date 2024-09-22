@@ -7,7 +7,6 @@ import (
 	"os/exec"
 
 	"github.com/frantjc/port-forward/internal/portfwd"
-	"github.com/frantjc/port-forward/internal/srcipmasq"
 	"github.com/frantjc/port-forward/internal/upnp"
 )
 
@@ -28,11 +27,10 @@ iptables -t nat -D POSTROUTING --source %s --destination %s --jump SNAT --to-sou
 
 type PortForwarder struct {
 	*upnp.Client
-	srcipmasq.SourceIPAddressMasqer
 }
 
-func NewPortForwarder(client *upnp.Client, masqer srcipmasq.SourceIPAddressMasqer) portfwd.PortForwarder {
-	return &PortForwarder{client, masqer}
+func NewPortForwarder(client *upnp.Client) portfwd.PortForwarder {
+	return &PortForwarder{client}
 }
 
 func (p *PortForwarder) AddPortMapping(ctx context.Context, pm *portfwd.PortMapping) error {
