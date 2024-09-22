@@ -26,8 +26,10 @@ import (
 	"runtime"
 	"syscall"
 
+	"github.com/coreos/go-iptables/iptables"
 	"github.com/frantjc/port-forward/internal/controller"
 	"github.com/frantjc/port-forward/internal/portfwd/portfwdupnp"
+	"github.com/frantjc/port-forward/internal/srcipmasq/srcipmasqiptables"
 	"github.com/frantjc/port-forward/internal/upnp"
 	xos "github.com/frantjc/x/os"
 	"github.com/go-logr/logr"
@@ -36,6 +38,7 @@ import (
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -131,13 +134,29 @@ func NewEntrypoint() *cobra.Command {
 
 				ctx := cmd.Context()
 
-				upnpClient, err := upnp.NewClient(ctx, upnp.WithAnyClient)
+				upnpClient, err := upnp.NewClient(ctx, upnp.WithAnyConnection)
+				if err != nil {
+					return err
+				}
+
+				protocol := iptables.ProtocolIPv4
+				if upnpClient.GoUPnPClient.GetServiceClient().LocalAddr().To4() == nil {
+					protocol = iptables.ProtocolIPv6
+				}
+
+				iptablesCmd, err := iptables.New(
+					iptables.IPFamily(protocol),
+					// iptables.Path("/path/to/iptables"),
+				)
 				if err != nil {
 					return err
 				}
 
 				if err := (&controller.UPnPServiceReconciler{
-					PortForwarder: portfwdupnp.NewPortForwarder(upnpClient),
+					PortForwarder: portfwdupnp.NewPortForwarder(
+						upnpClient,
+						&srcipmasqiptables.SourceIPAddressMasqer{IPTables: iptablesCmd},
+				),
 				}).SetupWithManager(mgr); err != nil {
 					return err
 				}

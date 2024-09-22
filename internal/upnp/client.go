@@ -118,7 +118,7 @@ func castToGoUPnPClients[client GoUPnPClient](clients []client) []GoUPnPClient {
 	})
 }
 
-func WithIG2WANIPConnection2Client(opts *NewClientOpts) {
+func WithIG2WANIPConnection2(opts *NewClientOpts) {
 	if opts.getClients == nil {
 		opts.getClients = []getClients{}
 	}
@@ -129,7 +129,7 @@ func WithIG2WANIPConnection2Client(opts *NewClientOpts) {
 	})
 }
 
-func WithIG2WANIPConnection1Client(opts *NewClientOpts) {
+func WithIG2WANIPConnection1(opts *NewClientOpts) {
 	if opts.getClients == nil {
 		opts.getClients = []getClients{}
 	}
@@ -140,7 +140,7 @@ func WithIG2WANIPConnection1Client(opts *NewClientOpts) {
 	})
 }
 
-func WithIG2WANPPPConnection1Client(opts *NewClientOpts) {
+func WithIG2WANPPPConnection1(opts *NewClientOpts) {
 	if opts.getClients == nil {
 		opts.getClients = []getClients{}
 	}
@@ -151,7 +151,7 @@ func WithIG2WANPPPConnection1Client(opts *NewClientOpts) {
 	})
 }
 
-func WithIG1WANIP1Connection1Client(opts *NewClientOpts) {
+func WithIG1WANIP1Connection1(opts *NewClientOpts) {
 	if opts.getClients == nil {
 		opts.getClients = []getClients{}
 	}
@@ -162,7 +162,7 @@ func WithIG1WANIP1Connection1Client(opts *NewClientOpts) {
 	})
 }
 
-func WithIG1WANPPP1Connection1Client(opts *NewClientOpts) {
+func WithIG1WANPPP1Connection1(opts *NewClientOpts) {
 	if opts.getClients == nil {
 		opts.getClients = []getClients{}
 	}
@@ -173,16 +173,16 @@ func WithIG1WANPPP1Connection1Client(opts *NewClientOpts) {
 	})
 }
 
-func WithAnyClient(opts *NewClientOpts) {
+func WithAnyConnection(opts *NewClientOpts) {
 	opts.getClients = []getClients{}
-	WithIG2WANIPConnection2Client(opts)
-	WithIG2WANIPConnection1Client(opts)
-	WithIG2WANPPPConnection1Client(opts)
-	WithIG1WANIP1Connection1Client(opts)
-	WithIG1WANPPP1Connection1Client(opts)
+	WithIG2WANIPConnection2(opts)
+	WithIG2WANIPConnection1(opts)
+	WithIG2WANPPPConnection1(opts)
+	WithIG1WANIP1Connection1(opts)
+	WithIG1WANPPP1Connection1(opts)
 }
 
-func WithClient(client GoUPnPClient) NewClientOpt {
+func WithGoUPnPClient(client GoUPnPClient) NewClientOpt {
 	return func(opts *NewClientOpts) {
 		opts.getClients = []getClients{
 			func(ctx context.Context) ([]GoUPnPClient, []error, error) {

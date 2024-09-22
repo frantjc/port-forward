@@ -68,8 +68,8 @@ spec:
             add:
               - NET_ADMIN
               - NET_RAW
-            drop:
-              - ALL
+            # drop:
+            #   - ALL
         livenessProbe:
           httpGet:
             path: /healthz
@@ -83,11 +83,11 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 10
         resources:
-          limits:
-            cpu: 20m
-            memory: 64Mi
           requests:
             cpu: 10m
             memory: 32Mi
+          limits:
+            cpu: 20m
+            memory: 64Mi
       serviceAccountName: controller-manager
       terminationGracePeriodSeconds: 10
