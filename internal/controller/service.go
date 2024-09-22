@@ -26,7 +26,7 @@ type UPnPServiceReconciler struct {
 }
 
 const (
-	Finalzier					= "pf.frantj.cc/finalizer"
+	Finalzier                   = "pf.frantj.cc/finalizer"
 	ForwardAnnotation           = "pf.frantj.cc/forward"
 	PortMapAnnotation           = "pf.frantj.cc/port-map"
 	UPnPRemoteHostAnnotation    = "upnp.pf.frantj.cc/remote-host"
@@ -40,7 +40,7 @@ const (
 
 func (r *UPnPServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var (
-		log 		= logr.FromContextOrDiscard(ctx)
+		log          = logr.FromContextOrDiscard(ctx)
 		service      = &corev1.Service{}
 		requeueAfter = time.Minute * 15
 		portMap      = map[int32]int32{}
@@ -88,6 +88,10 @@ func (r *UPnPServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	log.Info("service is not deleted")
 
+	if len(service.Status.LoadBalancer.Ingress) == 0 {
+		return ctrl.Result{RequeueAfter: time.Second * 10}, nil
+	}
+
 	if pm, ok := service.Annotations[PortMapAnnotation]; ok {
 		for _, ports := range strings.Split(pm, ",") {
 			var (
@@ -104,10 +108,9 @@ func (r *UPnPServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			internal, err := strconv.Atoi(portsSplit[1])
 			if err != nil {
 				r.Eventf(service, corev1.EventTypeWarning, "InvalidAnnotation", `invalid entry "%s" in "%s" annotation`, ports, PortMapAnnotation)
-				return ctrl.Result{}, nil
+			} else {
+				portMap[int32(internal)] = int32(external)
 			}
-
-			portMap[int32(internal)] = int32(external)
 		}
 	}
 
@@ -117,11 +120,10 @@ func (r *UPnPServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		var err error
 		leaseDuration, err = time.ParseDuration(leaseDurationS)
 		if err != nil {
-			r.Eventf(service, corev1.EventTypeWarning, "InvalidAnnotation", `invalid duration "%s" in "%s" annotation`, leaseDurationS, UPnPLeaseDurationAnnotation)
-			return ctrl.Result{}, nil
+			r.Eventf(service, corev1.EventTypeWarning, "InvalidAnnotation", `using default lease duration "%s" due to invalid duration "%s" in "%s" annotation`, leaseDuration, leaseDurationS, UPnPLeaseDurationAnnotation)
+		} else {
+			requeueAfter = leaseDuration / 2
 		}
-
-		requeueAfter = leaseDuration / 2
 	}
 
 	for _, port := range service.Spec.Ports {
@@ -144,9 +146,6 @@ func (r *UPnPServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			}
 
 			enabled, ok := service.Annotations[UPnPEnabledAnnotation]
-			if !ok {
-				return ctrl.Result{}, nil
-			}
 
 			for _, ingress := range service.Status.LoadBalancer.Ingress {
 				if err := r.AddPortMapping(ctx, &upnp.PortMapping{
