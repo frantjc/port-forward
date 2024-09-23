@@ -54,4 +54,4 @@ spec:
           - -VVV
           - --health-port=8081
           - --metrics-port=8082
-          - --leader-elect
+          - --leader-election

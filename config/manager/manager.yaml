@@ -60,7 +60,7 @@ spec:
       - command:
           - /manager
         args:
-          - --leader-elect
+          - --leader-election
         image: ghcr.io/frantjc/port-forward:0.1.0
         name: manager
         securityContext:
