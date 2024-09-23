@@ -1,20 +1,12 @@
 # port-forward
 
-TODO: Add simple overview of use/purpose
-
-## Description
-
-TODO: An in-depth paragraph about your project and overview of use
+Port Forward is a Kubernetes Controller that forwards external ports to Kubernetes Services of type LoadBalancer that are assigned private IP addresses. This is useful for homelabs using something like MetalLB to expose Services internally that want to expose some of them externally.
 
 ## Getting Started
 
 You’ll need a Kubernetes cluster to run against. You can use [KIND](https://sigs.k8s.io/kind) to get a local cluster for testing, or run against a remote cluster.
 
 **Note:** Your controller will automatically use the current context in your kubeconfig file (i.e. whatever cluster `kubectl cluster-info` shows).
-
-## Contributing
-
-TODO: Add detailed information on how you would like others to contribute to this project
 
 ### How it works
 
