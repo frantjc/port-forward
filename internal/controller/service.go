@@ -133,7 +133,7 @@ func (r *UPnPServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			description, ok := service.Annotations[UPnPDescriptionAnnotation]
 			if !ok {
 				description = fmt.Sprintf(
-					`created by UPnP controller for Service "%s/%s" port "%s"`,
+					`port-forward "%s/%s" port "%s"`,
 					service.ObjectMeta.Namespace, service.ObjectMeta.Name, portName,
 				)
 			}
