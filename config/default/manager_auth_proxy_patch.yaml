@@ -51,6 +51,7 @@ spec:
               memory: 64Mi
         - name: manager
           args:
+          - -VVV
           - --health-port=8081
-          - --metrics-port8082
+          - --metrics-port=8082
           - --leader-elect
