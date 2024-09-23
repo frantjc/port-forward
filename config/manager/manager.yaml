@@ -55,6 +55,7 @@ spec:
                     - linux
       securityContext:
         runAsNonRoot: true
+      hostNetwork: true
       containers:
       - command:
           - /manager
