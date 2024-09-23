@@ -53,17 +53,15 @@ spec:
                   operator: In
                   values:
                     - linux
-      securityContext:
-        runAsNonRoot: true
+      # securityContext:
+      #   runAsNonRoot: true
       hostNetwork: true
       containers:
-      - command:
-          - /manager
+      - name: manager
+        image: ghcr.io/frantjc/port-forward:0.1.2
         args:
           - -VVV
           - --leader-election
-        image: ghcr.io/frantjc/port-forward:0.2.0
-        name: manager
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
