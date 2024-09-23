@@ -1,4 +1,4 @@
 FROM gcr.io/distroless/static:nonroot
-COPY manager /
-USER 65532:65532
-ENTRYPOINT ["/manager"]
+RUN apk add iptables
+COPY manager /usr/local/bin
+ENTRYPOINT ["/usr/local/bin/manager"]

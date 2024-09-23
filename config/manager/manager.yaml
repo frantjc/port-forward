@@ -60,8 +60,9 @@ spec:
       - command:
           - /manager
         args:
+          - -VVV
           - --leader-election
-        image: ghcr.io/frantjc/port-forward:0.1.0
+        image: ghcr.io/frantjc/port-forward:0.2.0
         name: manager
         securityContext:
           allowPrivilegeEscalation: false
@@ -69,8 +70,6 @@ spec:
             add:
               - NET_ADMIN
               - NET_RAW
-            # drop:
-            #   - ALL
         livenessProbe:
           httpGet:
             path: /healthz

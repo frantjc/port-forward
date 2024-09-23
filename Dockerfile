@@ -9,8 +9,8 @@ COPY main.go version.go ./
 COPY internal/ internal/
 RUN CGO_ENABLED=0 go build -a -o /manager main.go
 
-FROM gcr.io/distroless/static:nonroot
+FROM alpine
 WORKDIR /
-COPY --from=build /manager .
-USER 65532:65532
-ENTRYPOINT ["/manager"]
+RUN apk add iptables
+COPY --from=build /manager /usr/local/bin
+ENTRYPOINT ["/usr/local/bin/manager"]
