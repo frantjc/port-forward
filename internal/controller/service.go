@@ -37,6 +37,7 @@ const (
 
 //+kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch
 //+kubebuilder:rbac:groups="",resources=services/finalizers,verbs=update
+//+kubebuilder:rbac:groups="",resources=events,verbs=create
 
 func (r *UPnPServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var (
