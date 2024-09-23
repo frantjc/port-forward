@@ -60,7 +60,7 @@ spec:
           - /manager
         args:
           - --leader-elect
-        image: ghcr.io/frantjc/port-forward:latest
+        image: ghcr.io/frantjc/port-forward:0.1.0
         name: manager
         securityContext:
           allowPrivilegeEscalation: false
