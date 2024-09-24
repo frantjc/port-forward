@@ -5,7 +5,7 @@ Port Forward is a Kubernetes Controller that forwards external ports to Kubernet
 ## install
 
 ```sh
-kubectl kustomize https://github.com/frantjc/port-forward/config/default?ref=v0.1.4 | kubectl apply -f-
+kubectl kustomize https://github.com/frantjc/port-forward/config/default?ref=v0.1.5 | kubectl apply -f-
 ```
 
 ## use
