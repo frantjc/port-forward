@@ -26,6 +26,8 @@ metadata:
     app.kubernetes.io/part-of: port-forward
     app.kubernetes.io/managed-by: kustomize
 spec:
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       control-plane: controller-manager
@@ -82,10 +84,10 @@ spec:
           periodSeconds: 10
         resources:
           requests:
-            cpu: 10m
-            memory: 32Mi
-          limits:
-            cpu: 20m
+            cpu: 5m
             memory: 64Mi
+          limits:
+            cpu: 10m
+            memory: 128Mi
       serviceAccountName: controller-manager
       terminationGracePeriodSeconds: 10
