@@ -150,6 +150,7 @@ func NewEntrypoint() *cobra.Command {
 				}
 
 				if err := (&controller.ServiceReconciler{
+					ExternalIPAddressGetter: upnpClient,
 					PortForwarder: &portfwdupnp.PortForwarder{
 						Client: upnpClient,
 						SourceIPAddressMasqer: &srcipmasqiptables.SourceIPAddressMasqer{
