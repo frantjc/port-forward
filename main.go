@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"os"
 	"os/signal"
 	"runtime"
@@ -30,6 +31,9 @@ import (
 	"github.com/frantjc/port-forward/internal/controller"
 	"github.com/frantjc/port-forward/internal/portfwd/portfwdupnp"
 	"github.com/frantjc/port-forward/internal/srcipmasq/srcipmasqiptables"
+	"github.com/frantjc/port-forward/internal/svcip"
+	"github.com/frantjc/port-forward/internal/svcip/svcipdef"
+	"github.com/frantjc/port-forward/internal/svcip/svcipraw"
 	"github.com/frantjc/port-forward/internal/upnp"
 	xos "github.com/frantjc/x/os"
 	"github.com/go-logr/logr"
@@ -80,6 +84,7 @@ func NewEntrypoint() *cobra.Command {
 		verbosity                                       int
 		healthPort, metricsPort, pprofPort, webhookPort int
 		leaderElection                                  bool
+		overrideIPAddressS                              string
 		cmd                                             = &cobra.Command{
 			Use:           "manager",
 			Version:       SemVer(),
@@ -133,7 +138,6 @@ func NewEntrypoint() *cobra.Command {
 				}
 
 				ctx := cmd.Context()
-
 				upnpClient, err := upnp.NewClient(ctx, upnp.WithAnyConnection)
 				if err != nil {
 					return err
@@ -149,7 +153,17 @@ func NewEntrypoint() *cobra.Command {
 					return err
 				}
 
+				var svcIPAddrGtr svcip.ServiceIPAddressGetter = new(svcipdef.ServiceIPAddressGetter)
+				if overrideIPAddressS != "" {
+					if overrideIPAddress := net.ParseIP(overrideIPAddressS); overrideIPAddress == nil {
+						return fmt.Errorf("parse IP address: %s", overrideIPAddressS)
+					} else {
+						svcIPAddrGtr = svcipraw.ServiceIPAddressGetter{overrideIPAddress}
+					}
+				}
+
 				if err := (&controller.ServiceReconciler{
+					ServiceIPAddressGetter: svcIPAddrGtr,
 					PortForwarder: &portfwdupnp.PortForwarder{
 						Client: upnpClient,
 						SourceIPAddressMasqer: &srcipmasqiptables.SourceIPAddressMasqer{
@@ -176,6 +190,8 @@ func NewEntrypoint() *cobra.Command {
 	cmd.Flags().IntVar(&pprofPort, "pprof-port", 8083, "pprof port")
 	cmd.Flags().IntVar(&webhookPort, "webhook-port", webhook.DefaultPort, "webhook port")
 	cmd.Flags().BoolVar(&leaderElection, "leader-election", false, "leader election")
+
+	cmd.Flags().StringVar(&overrideIPAddressS, "override-ip-address", "", "IP address to use instead of getting it from a Service")
 
 	return cmd
 }

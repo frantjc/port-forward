@@ -1,14 +1,18 @@
 # port-forward
 
-Port Forward is a Kubernetes Controller that forwards external ports to Kubernetes Services of type LoadBalancer that are assigned private IP addresses. This is useful for clusters using something like MetalLB to expose Services internally that want to expose some of them externally.
+Port Forward is a Kubernetes Controller that forwards external ports to Kubernetes Services of type LoadBalancer which have been assigned private IP addresses. This is useful for clusters using something like MetalLB to expose Services internally that then want to expose some of them externally.
 
-## install
+## use
+
+Install Port Forward:
 
 ```sh
 kubectl kustomize https://github.com/frantjc/port-forward/config/default?ref=v0.1.5 | kubectl apply -f-
 ```
 
-## use
+> Don't have MetalLB or something else to assign an IP address to the Service? Try adding the argument `--override-ip-address=192.168.0.11` to Port Forward.
+
+And give it something to do:
 
 ```sh
 kubectl apply -f - <<EOF
@@ -23,11 +27,12 @@ spec:
   ports:
     - port: 443
       targetPort: 443
-  selector: {}
+  selector:
+    your-label: your-pod
 EOF
 ```
 
-> See [sample](./config/samples/service.yaml) for full list of supported annotations.
+> See [sample](./config/samples/service.yaml) for full list of supported annotations and their descriptions.
 
 ## developing
 
@@ -35,11 +40,9 @@ You’ll need a Kubernetes cluster to run against. You can use [KIND](https://si
 
 Port Forward will automatically use the current context in your kubeconfig file (i.e. whatever cluster `kubectl cluster-info` shows).
 
-### how it works
-
 Uses the Kubernetes [Operator pattern](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/).
 
-Uses a [Controller](https://kubernetes.io/docs/concepts/architecture/controller/), which provides a reconcile function responsible for synchronizing Services of type LoadBalancer until the desired state is reached and maintained on the cluster.
+Uses a [Controller](https://kubernetes.io/docs/concepts/architecture/controller/), which provides a reconcile function responsible for continually synchronizing Services of type LoadBalancer to reach and maintain the desired state.
 
 More information can be found via the [Kubebuilder Documentation](https://book.kubebuilder.io/introduction.html).
 

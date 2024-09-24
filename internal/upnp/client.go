@@ -211,7 +211,7 @@ func NewClient(ctx context.Context, opts ...NewClientOpt) (*Client, error) {
 	}
 
 	for _, getClient := range o.getClients {
-		goUPnPClient, err := getOnegoUPnPClient(ctx, getClient)
+		goUPnPClient, err := getOneGoUPnPClient(ctx, getClient)
 		if err != nil {
 			if errors.Is(err, ErrNoClients) {
 				continue
@@ -226,7 +226,7 @@ func NewClient(ctx context.Context, opts ...NewClientOpt) (*Client, error) {
 	return nil, ErrNoClients
 }
 
-func getOnegoUPnPClient(ctx context.Context, f getClients) (GoUPnPClient, error) {
+func getOneGoUPnPClient(ctx context.Context, f getClients) (GoUPnPClient, error) {
 	clients, _, err := f(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get clients: %w", err)

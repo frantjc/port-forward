@@ -3,16 +3,17 @@ package controller
 import (
 	"context"
 	"fmt"
-	"net"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/frantjc/port-forward/internal/portfwd"
+	"github.com/frantjc/port-forward/internal/svcip"
 	"github.com/frantjc/port-forward/internal/upnp"
 	xslice "github.com/frantjc/x/slice"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -20,19 +21,25 @@ import (
 )
 
 type ServiceReconciler struct {
+	svcip.ServiceIPAddressGetter
 	portfwd.PortForwarder
 	client.Client
 	record.EventRecorder
 }
 
 const (
-	Finalzier                   = "pf.frantj.cc/finalizer"
-	ForwardAnnotation           = "pf.frantj.cc/forward"
-	PortMapAnnotation           = "pf.frantj.cc/port-map"
-	UPnPRemoteHostAnnotation    = "upnp.pf.frantj.cc/remote-host"
-	UPnPEnabledAnnotation       = "upnp.pf.frantj.cc/enabled"
-	UPnPDescriptionAnnotation   = "upnp.pf.frantj.cc/description"
-	UPnPLeaseDurationAnnotation = "upnp.pf.frantj.cc/lease-duration"
+	Finalizer                   = "pf.frantj.cc/finalizer"
+	AnnotationForward           = "pf.frantj.cc/forward"
+	AnnotationPortMap           = "pf.frantj.cc/port-map"
+	AnnotationUPnPRemoteHost    = "upnp.pf.frantj.cc/remote-host"
+	AnnotationUPnPEnabled       = "upnp.pf.frantj.cc/enabled"
+	AnnotationUPnPDescription   = "upnp.pf.frantj.cc/description"
+	AnnotationUPnPLeaseDuration = "upnp.pf.frantj.cc/lease-duration"
+)
+
+const (
+	EventReasonAnnotation = "PortForwardAnnotation"
+	EventReasonForward    = "PortForward"
 )
 
 //+kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch
@@ -41,12 +48,18 @@ const (
 
 func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var (
-		_            = logr.FromContextOrDiscard(ctx)
-		service      = &corev1.Service{}
-		requeueAfter = time.Minute * 15
-		portMap      = map[int32]int32{}
-		cleanup      = func() (ctrl.Result, error) {
-			if controllerutil.RemoveFinalizer(service, Finalzier) {
+		_              = logr.FromContextOrDiscard(ctx)
+		service        = &corev1.Service{}
+		requeueAfter   = time.Minute * 15
+		portMap        = map[int32]int32{}
+		tmpPortNameMap = map[string]int32{}
+		portNameMap    = map[string]int32{}
+		cleanup        = func() (ctrl.Result, error) {
+			// TODO: Delete any forwarded ports. Not of the utmost importance due to
+			// the forced lease duration automatically expiring it at some point in UPnP,
+			// but may become important in future implementations.
+
+			if controllerutil.RemoveFinalizer(service, Finalizer) {
 				if err := r.Client.Update(ctx, service); err != nil {
 					return ctrl.Result{Requeue: true}, nil
 				}
@@ -57,43 +70,40 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	)
 
 	if err := r.Client.Get(ctx, req.NamespacedName, service); err != nil {
-		return ctrl.Result{}, client.IgnoreNotFound(err)
+		return ctrl.Result{Requeue: errors.IsNotFound(err)}, client.IgnoreNotFound(err)
 	}
 
-	forward, ok := service.Annotations[ForwardAnnotation]
+	forward, ok := service.Annotations[AnnotationForward]
 	if !ok {
 		return cleanup()
 	}
 
 	if !IsTruthy(forward) {
-		r.Eventf(service, corev1.EventTypeNormal, "InvalidAnnotation", "redundant falsy value %s in %s annotation", forward, ForwardAnnotation)
+		r.Eventf(service, corev1.EventTypeNormal, EventReasonAnnotation, "redundant falsy value %s in %s annotation", forward, AnnotationForward)
 		return cleanup()
 	}
 
 	if service.Spec.Type != corev1.ServiceTypeLoadBalancer {
-		r.Eventf(service, corev1.EventTypeWarning, "InvalidAnnotation", "invalid truthy value %s in %s annotation on Service of type %s", forward, ForwardAnnotation, service.Spec.Type)
+		r.Eventf(service, corev1.EventTypeWarning, EventReasonAnnotation, "truthy value %s in %s annotation on Service of type %s", forward, AnnotationForward, service.Spec.Type)
 		return cleanup()
 	}
 
 	if !service.GetDeletionTimestamp().IsZero() {
-		// TODO: Delete the PortMapping. Not of the utmost importance due to the lease duration
-		// automatically expiring it at some point.
-
 		return cleanup()
 	}
 
-	if len(service.Status.LoadBalancer.Ingress) == 0 {
-		return ctrl.Result{RequeueAfter: time.Second * 10}, nil
+	for _, port := range service.Spec.Ports {
+		tmpPortNameMap[port.Name] = 0
 	}
 
-	if pm, ok := service.Annotations[PortMapAnnotation]; ok {
+	if pm, ok := service.Annotations[AnnotationPortMap]; ok {
 		for _, ports := range strings.Split(pm, ",") {
 			var (
 				portsSplit    = strings.SplitN(ports, ":", 2)
 				lenPortsSplit = len(portsSplit)
 			)
 			if lenPortsSplit != 2 {
-				r.Eventf(service, corev1.EventTypeWarning, "InvalidAnnotation", "invalid entry %s in %s annotation", ports, PortMapAnnotation)
+				r.Eventf(service, corev1.EventTypeWarning, EventReasonAnnotation, "invalid entry %s in %s annotation", ports, AnnotationPortMap)
 				return ctrl.Result{}, nil
 			}
 
@@ -101,37 +111,52 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 			internal, err := strconv.Atoi(portsSplit[1])
 			if err != nil {
-				r.Eventf(service, corev1.EventTypeWarning, "InvalidAnnotation", "invalid entry %s in %s annotation", ports, PortMapAnnotation)
+				if _, ok := tmpPortNameMap[portsSplit[1]]; ok {
+					portNameMap[portsSplit[1]] = int32(external)
+				} else {
+					r.Eventf(service, corev1.EventTypeWarning, EventReasonAnnotation, "invalid entry %s in %s annotation", ports, AnnotationPortMap)
+				}
 			} else {
 				portMap[int32(internal)] = int32(external)
 			}
 		}
 	}
 
-	leaseDurationS, ok := service.Annotations[UPnPLeaseDurationAnnotation]
-	leaseDuration := requeueAfter * 2
-	if ok {
+	var (
+		defaultLeaseDuration = requeueAfter * 2
+		leaseDuration        = defaultLeaseDuration
+	)
+	if leaseDurationS, ok := service.Annotations[AnnotationUPnPLeaseDuration]; ok {
 		var err error
 		leaseDuration, err = time.ParseDuration(leaseDurationS)
 		if err != nil {
-			r.Eventf(service, corev1.EventTypeWarning, "InvalidAnnotation", "using default lease duration %s due to invalid duration %s in %s annotation", leaseDuration, leaseDurationS, UPnPLeaseDurationAnnotation)
+			leaseDuration = defaultLeaseDuration
+			r.Eventf(service, corev1.EventTypeWarning, EventReasonAnnotation, "using default lease duration %s due to invalid duration %s in %s annotation", leaseDuration, leaseDurationS, AnnotationUPnPLeaseDuration)
 		} else {
 			requeueAfter = leaseDuration / 2
 		}
 	}
 
-	for _, port := range service.Spec.Ports {
-		if xslice.Includes([]corev1.Protocol{corev1.ProtocolTCP, corev1.ProtocolUDP}, port.Protocol) {
+	if ipAddresses := r.ServiceIPAddressGetter.GetServiceIPAddresses(service); len(ipAddresses) > 0 {
+		for _, port := range service.Spec.Ports {
+			portName := xslice.Coalesce(port.Name, fmt.Sprint(port.Port))
+
 			externalPort, ok := portMap[port.Port]
 			if !ok {
-				externalPort = port.Port
-			} else if externalPort <= 0 {
+				if anotherExternalPort, ok := portNameMap[port.Name]; ok {
+					externalPort = anotherExternalPort
+				} else {
+					externalPort = port.Port
+				}
+			}
+
+			if externalPort <= 0 {
+				r.Eventf(service, corev1.EventTypeNormal, EventReasonForward, "skip port %s due to %s annotation mapping it to %d", portName, AnnotationPortMap, externalPort)
+
 				continue
 			}
 
-			portName := xslice.Coalesce(port.Name, fmt.Sprint(port.Port))
-
-			description, ok := service.Annotations[UPnPDescriptionAnnotation]
+			description, ok := service.Annotations[AnnotationUPnPDescription]
 			if !ok {
 				description = fmt.Sprintf(
 					"port-forward %s/%s port %s",
@@ -139,30 +164,30 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 				)
 			}
 
-			enabled, ok := service.Annotations[UPnPEnabledAnnotation]
+			enabled, ok := service.Annotations[AnnotationUPnPEnabled]
 
-			for _, ingress := range service.Status.LoadBalancer.Ingress {
+			for _, ip := range ipAddresses {
 				if err := r.AddPortMapping(ctx, &upnp.PortMapping{
-					RemoteHost:     service.Annotations[UPnPRemoteHostAnnotation],
+					RemoteHost:     service.Annotations[AnnotationUPnPRemoteHost],
 					ExternalPort:   externalPort,
 					Protocol:       upnp.Protocol(port.Protocol),
 					InternalPort:   port.Port,
-					InternalClient: net.ParseIP(ingress.IP),
+					InternalClient: ip,
 					Enabled:        !ok || IsTruthy(enabled),
 					Description:    description,
 					LeaseDuration:  leaseDuration,
 				}); err != nil {
-					r.Eventf(service, corev1.EventTypeWarning, "FailedPortMapping", "map %d to %s:%d for port %s failed with: %s", externalPort, ingress.IP, port.Port, portName, err.Error())
+					r.Eventf(service, corev1.EventTypeWarning, EventReasonForward, "%d to %s:%d for port %s failed with: %s", externalPort, ip, port.Port, portName, err.Error())
 				} else {
-					r.Eventf(service, corev1.EventTypeNormal, "AddedPortMapping", "mapped %d to %s:%d for port %s", externalPort, ingress.IP, port.Port, portName)
+					r.Eventf(service, corev1.EventTypeNormal, EventReasonForward, "%d to %s:%d for port %s", externalPort, ip, port.Port, portName)
 				}
 			}
-		} else {
-			r.Eventf(service, corev1.EventTypeNormal, "UnsupportedProtocol", "skipping UPnP for port with unsupported protocol %s", port.Protocol)
 		}
+	} else {
+		return ctrl.Result{RequeueAfter: time.Second * 9}, nil
 	}
 
-	if controllerutil.AddFinalizer(service, Finalzier) {
+	if controllerutil.AddFinalizer(service, Finalizer) {
 		if err := r.Client.Update(ctx, service); err != nil {
 			return ctrl.Result{Requeue: true}, nil
 		}
