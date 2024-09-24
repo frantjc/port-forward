@@ -45,6 +45,15 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		service      = &corev1.Service{}
 		requeueAfter = time.Minute * 15
 		portMap      = map[int32]int32{}
+		cleanup = func() (ctrl.Result, error) {
+			if controllerutil.RemoveFinalizer(service, Finalzier) {
+				if err := r.Client.Update(ctx, service); err != nil {
+					return ctrl.Result{Requeue: true}, nil
+				}
+			}
+		
+			return ctrl.Result{}, nil
+		}
 	)
 
 	if err := r.Client.Get(ctx, req.NamespacedName, service); err != nil {
@@ -53,32 +62,24 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	forward, ok := service.Annotations[ForwardAnnotation]
 	if !ok {
-		return ctrl.Result{}, nil
+		return cleanup()
 	}
 
-	if !xslice.Some([]string{"yes", "y", "1", "true"}, func(truthy string, _ int) bool {
-		return strings.EqualFold(forward, truthy)
-	}) {
+	if !IsTruthy(forward) {
 		r.Eventf(service, corev1.EventTypeNormal, "InvalidAnnotation", "redundant falsy value %s in %s annotation", forward, ForwardAnnotation)
-		return ctrl.Result{}, nil
+		return cleanup()
 	}
 
 	if service.Spec.Type != corev1.ServiceTypeLoadBalancer {
 		r.Eventf(service, corev1.EventTypeWarning, "InvalidAnnotation", "invalid truthy value %s in %s annotation on Service of type %s", forward, ForwardAnnotation, service.Spec.Type)
-		return ctrl.Result{}, nil
+		return cleanup()
 	}
 
 	if !service.GetDeletionTimestamp().IsZero() {
 		// TODO: Delete the PortMapping. Not of the utmost importance due to the lease duration
 		// automatically expiring it at some point.
 
-		if controllerutil.RemoveFinalizer(service, Finalzier) {
-			if err := r.Client.Update(ctx, service); err != nil {
-				return ctrl.Result{}, err
-			}
-		}
-
-		return ctrl.Result{}, nil
+		return cleanup()
 	}
 
 	if len(service.Status.LoadBalancer.Ingress) == 0 {
@@ -147,9 +148,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 					Protocol:       upnp.Protocol(port.Protocol),
 					InternalPort:   port.Port,
 					InternalClient: net.ParseIP(ingress.IP),
-					Enabled: !ok || xslice.Some([]string{"yes", "y", "1", "true"}, func(truthy string, _ int) bool {
-						return strings.EqualFold(enabled, truthy)
-					}),
+					Enabled: !ok || IsTruthy(enabled),
 					Description:   description,
 					LeaseDuration: leaseDuration,
 				}); err != nil {
@@ -165,11 +164,17 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	if controllerutil.AddFinalizer(service, Finalzier) {
 		if err := r.Client.Update(ctx, service); err != nil {
-			return ctrl.Result{}, err
+			return ctrl.Result{Requeue: true}, nil
 		}
 	}
 
 	return ctrl.Result{RequeueAfter: requeueAfter}, nil
+}
+
+func IsTruthy(s string) bool {
+	return xslice.Some([]string{"yes", "y", "1", "true"}, func(truthy string, _ int) bool {
+		return strings.EqualFold(s, truthy)
+	})
 }
 
 func (r *ServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
