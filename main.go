@@ -149,11 +149,13 @@ func NewEntrypoint() *cobra.Command {
 					return err
 				}
 
-				if err := (&controller.UPnPServiceReconciler{
-					PortForwarder: portfwdupnp.NewPortForwarder(
-						upnpClient,
-						&srcipmasqiptables.SourceIPAddressMasqer{IPTables: ipt},
-					),
+				if err := (&controller.ServiceReconciler{
+					PortForwarder: &portfwdupnp.PortForwarder{
+						Client: upnpClient,
+						SourceIPAddressMasqer: &srcipmasqiptables.SourceIPAddressMasqer{
+							IPTables: ipt,
+						},
+					},
 				}).SetupWithManager(mgr); err != nil {
 					return err
 				}

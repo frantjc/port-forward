@@ -13,10 +13,6 @@ type PortForwarder struct {
 	srcipmasq.SourceIPAddressMasqer
 }
 
-func NewPortForwarder(client *upnp.Client, masqer srcipmasq.SourceIPAddressMasqer) portfwd.PortForwarder {
-	return &PortForwarder{client, masqer}
-}
-
 func (p *PortForwarder) AddPortMapping(ctx context.Context, pm *portfwd.PortMapping) error {
 	destination, err := p.GetServiceIPAddress(ctx)
 	if err != nil {

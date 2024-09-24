@@ -36,12 +36,15 @@ type PortMapping struct {
 	LeaseDuration  time.Duration
 }
 
+// Client is a wrapper around any goupnp client to standardize
+// the API for doing UPnP operations.
 type Client struct {
-	GoUPnPClient GoUPnPClient
+	goUPnPClient GoUPnPClient
 }
 
+// GetExternalIPAddress gets the external IP address via UPnP.
 func (c *Client) GetExternalIPAddress(ctx context.Context) (net.IP, error) {
-	ips, err := c.GoUPnPClient.GetExternalIPAddressCtx(ctx)
+	ips, err := c.goUPnPClient.GetExternalIPAddressCtx(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -54,8 +57,9 @@ func (c *Client) GetExternalIPAddress(ctx context.Context) (net.IP, error) {
 	return ip, nil
 }
 
+// GetExternalIPAddress adds the port mapping via UPnP.
 func (c *Client) AddPortMapping(ctx context.Context, pm *PortMapping) error {
-	return c.GoUPnPClient.AddPortMappingCtx(ctx,
+	return c.goUPnPClient.AddPortMappingCtx(ctx,
 		pm.RemoteHost,
 		uint16(pm.ExternalPort),
 		string(pm.Protocol),
@@ -67,8 +71,9 @@ func (c *Client) AddPortMapping(ctx context.Context, pm *PortMapping) error {
 	)
 }
 
+// GetServiceIPAddress gets the IP address of the router.
 func (c *Client) GetServiceIPAddress(context.Context) (net.IP, error) {
-	location := c.GoUPnPClient.GetServiceClient().Location
+	location := c.goUPnPClient.GetServiceClient().Location
 
 	ips, err := net.LookupIP(location.Hostname())
 	if err != nil {
@@ -81,11 +86,12 @@ func (c *Client) GetServiceIPAddress(context.Context) (net.IP, error) {
 		}
 	}
 
-	return nil, fmt.Errorf(`no IP addresses found for UPnP service location "%s"`, location)
+	return nil, fmt.Errorf("no IP addresses found for UPnP service location %s", location)
 }
 
+// GetSourceIPAddress gets the IP address of the client.
 func (c *Client) GetSourceIPAddress(context.Context) net.IP {
-	return c.GoUPnPClient.GetServiceClient().LocalAddr()
+	return c.goUPnPClient.GetServiceClient().LocalAddr()
 }
 
 type GoUPnPClient interface {
@@ -105,6 +111,7 @@ type GoUPnPClient interface {
 }
 
 var (
+	// ErrNoClients is returned when no UPnP clients are found.
 	ErrNoClients = errors.New("no clients found")
 )
 
@@ -116,7 +123,7 @@ type NewClientOpts struct {
 
 type NewClientOpt func(*NewClientOpts)
 
-func castToGoUPnPClients[client GoUPnPClient](clients []client) []GoUPnPClient {
+func castTogoUPnPClients[client GoUPnPClient](clients []client) []GoUPnPClient {
 	return xslice.Map(clients, func(cli client, _ int) GoUPnPClient {
 		return cli
 	})
@@ -129,7 +136,7 @@ func WithIG2WANIPConnection2(opts *NewClientOpts) {
 
 	opts.getClients = append(opts.getClients, func(ctx context.Context) ([]GoUPnPClient, []error, error) {
 		clients, errs, err := internetgateway2.NewWANIPConnection2ClientsCtx(ctx)
-		return castToGoUPnPClients(clients), errs, err
+		return castTogoUPnPClients(clients), errs, err
 	})
 }
 
@@ -140,7 +147,7 @@ func WithIG2WANIPConnection1(opts *NewClientOpts) {
 
 	opts.getClients = append(opts.getClients, func(ctx context.Context) ([]GoUPnPClient, []error, error) {
 		clients, errs, err := internetgateway2.NewWANIPConnection1ClientsCtx(ctx)
-		return castToGoUPnPClients(clients), errs, err
+		return castTogoUPnPClients(clients), errs, err
 	})
 }
 
@@ -151,7 +158,7 @@ func WithIG2WANPPPConnection1(opts *NewClientOpts) {
 
 	opts.getClients = append(opts.getClients, func(ctx context.Context) ([]GoUPnPClient, []error, error) {
 		clients, errs, err := internetgateway2.NewWANPPPConnection1ClientsCtx(ctx)
-		return castToGoUPnPClients(clients), errs, err
+		return castTogoUPnPClients(clients), errs, err
 	})
 }
 
@@ -162,7 +169,7 @@ func WithIG1WANIP1Connection1(opts *NewClientOpts) {
 
 	opts.getClients = append(opts.getClients, func(ctx context.Context) ([]GoUPnPClient, []error, error) {
 		clients, errs, err := internetgateway1.NewWANIPConnection1ClientsCtx(ctx)
-		return castToGoUPnPClients(clients), errs, err
+		return castTogoUPnPClients(clients), errs, err
 	})
 }
 
@@ -173,7 +180,7 @@ func WithIG1WANPPP1Connection1(opts *NewClientOpts) {
 
 	opts.getClients = append(opts.getClients, func(ctx context.Context) ([]GoUPnPClient, []error, error) {
 		clients, errs, err := internetgateway1.NewWANPPPConnection1ClientsCtx(ctx)
-		return castToGoUPnPClients(clients), errs, err
+		return castTogoUPnPClients(clients), errs, err
 	})
 }
 
@@ -204,7 +211,7 @@ func NewClient(ctx context.Context, opts ...NewClientOpt) (*Client, error) {
 	}
 
 	for _, getClient := range o.getClients {
-		GoUPnPClient, err := getOneGoUPnPClient(ctx, getClient)
+		goUPnPClient, err := getOnegoUPnPClient(ctx, getClient)
 		if err != nil {
 			if errors.Is(err, ErrNoClients) {
 				continue
@@ -213,16 +220,16 @@ func NewClient(ctx context.Context, opts ...NewClientOpt) (*Client, error) {
 			return nil, err
 		}
 
-		return &Client{GoUPnPClient}, nil
+		return &Client{goUPnPClient}, nil
 	}
 
 	return nil, ErrNoClients
 }
 
-func getOneGoUPnPClient(ctx context.Context, f getClients) (GoUPnPClient, error) {
+func getOnegoUPnPClient(ctx context.Context, f getClients) (GoUPnPClient, error) {
 	clients, _, err := f(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get clients: %w", err)
 	} else if len(clients) == 0 {
 		return nil, ErrNoClients
 	}

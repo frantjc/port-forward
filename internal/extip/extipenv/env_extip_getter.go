@@ -5,16 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
-
-	"github.com/frantjc/port-forward/internal/extip"
 )
-
-// NewExternalIPAddressGetter returns an ExternalIPAddressGetter
-// that gets the external IP address from the value of the given
-// environment variable.
-func NewExternalIPAddressGetter(envVar string) extip.ExternalIPAddressGetter {
-	return ExternalIPAddressGetter(envVar)
-}
 
 // ExternalIPAddressGetter implements extip.ExternalIPAddressGetter
 // by getting the external IP address from the value of an envionment

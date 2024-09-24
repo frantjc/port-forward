@@ -7,6 +7,8 @@ import (
 	"github.com/frantjc/port-forward/internal/srcipmasq"
 )
 
+// SourceIPAddressMasqer implements srcipmasq.SourceIPAddressMasqer
+// using `iptables`.
 type SourceIPAddressMasqer struct {
 	*iptables.IPTables
 }

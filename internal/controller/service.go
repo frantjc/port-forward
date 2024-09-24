@@ -19,7 +19,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-type UPnPServiceReconciler struct {
+type ServiceReconciler struct {
 	portfwd.PortForwarder
 	client.Client
 	record.EventRecorder
@@ -39,7 +39,7 @@ const (
 //+kubebuilder:rbac:groups="",resources=services/finalizers,verbs=update
 //+kubebuilder:rbac:groups="",resources=events,verbs=create
 
-func (r *UPnPServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var (
 		_            = logr.FromContextOrDiscard(ctx)
 		service      = &corev1.Service{}
@@ -59,12 +59,12 @@ func (r *UPnPServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	if !xslice.Some([]string{"yes", "y", "1", "true"}, func(truthy string, _ int) bool {
 		return strings.EqualFold(forward, truthy)
 	}) {
-		r.Eventf(service, corev1.EventTypeNormal, "InvalidAnnotation", `redundant falsy value "%s" in "%s" annotation`, forward, ForwardAnnotation)
+		r.Eventf(service, corev1.EventTypeNormal, "InvalidAnnotation", "redundant falsy value %s in %s annotation", forward, ForwardAnnotation)
 		return ctrl.Result{}, nil
 	}
 
 	if service.Spec.Type != corev1.ServiceTypeLoadBalancer {
-		r.Eventf(service, corev1.EventTypeWarning, "InvalidAnnotation", `invalid truthy value "%s" in "%s" annotation on non-LoadBalancer Service`, forward, ForwardAnnotation)
+		r.Eventf(service, corev1.EventTypeWarning, "InvalidAnnotation", "invalid truthy value %s in %s annotation on Service of type %s", forward, ForwardAnnotation, service.Spec.Type)
 		return ctrl.Result{}, nil
 	}
 
@@ -92,7 +92,7 @@ func (r *UPnPServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 				lenPortsSplit = len(portsSplit)
 			)
 			if lenPortsSplit != 2 {
-				r.Eventf(service, corev1.EventTypeWarning, "InvalidAnnotation", `invalid entry "%s" in "%s" annotation`, ports, PortMapAnnotation)
+				r.Eventf(service, corev1.EventTypeWarning, "InvalidAnnotation", "invalid entry %s in %s annotation", ports, PortMapAnnotation)
 				return ctrl.Result{}, nil
 			}
 
@@ -100,7 +100,7 @@ func (r *UPnPServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 			internal, err := strconv.Atoi(portsSplit[1])
 			if err != nil {
-				r.Eventf(service, corev1.EventTypeWarning, "InvalidAnnotation", `invalid entry "%s" in "%s" annotation`, ports, PortMapAnnotation)
+				r.Eventf(service, corev1.EventTypeWarning, "InvalidAnnotation", "invalid entry %s in %s annotation", ports, PortMapAnnotation)
 			} else {
 				portMap[int32(internal)] = int32(external)
 			}
@@ -113,7 +113,7 @@ func (r *UPnPServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		var err error
 		leaseDuration, err = time.ParseDuration(leaseDurationS)
 		if err != nil {
-			r.Eventf(service, corev1.EventTypeWarning, "InvalidAnnotation", `using default lease duration "%s" due to invalid duration "%s" in "%s" annotation`, leaseDuration, leaseDurationS, UPnPLeaseDurationAnnotation)
+			r.Eventf(service, corev1.EventTypeWarning, "InvalidAnnotation", "using default lease duration %s due to invalid duration %s in %s annotation", leaseDuration, leaseDurationS, UPnPLeaseDurationAnnotation)
 		} else {
 			requeueAfter = leaseDuration / 2
 		}
@@ -133,7 +133,7 @@ func (r *UPnPServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			description, ok := service.Annotations[UPnPDescriptionAnnotation]
 			if !ok {
 				description = fmt.Sprintf(
-					`port-forward "%s/%s" port "%s"`,
+					"port-forward %s/%s port %s",
 					service.ObjectMeta.Namespace, service.ObjectMeta.Name, portName,
 				)
 			}
@@ -153,13 +153,13 @@ func (r *UPnPServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 					Description:   description,
 					LeaseDuration: leaseDuration,
 				}); err != nil {
-					r.Eventf(service, corev1.EventTypeWarning, "FailedPortMapping", `mapping "%d" to "%s:%d" for port "%s" failed with: %s`, externalPort, ingress.IP, port.Port, portName, err.Error())
+					r.Eventf(service, corev1.EventTypeWarning, "FailedPortMapping", "map %d to %s:%d for port %s failed with: %s", externalPort, ingress.IP, port.Port, portName, err.Error())
 				} else {
-					r.Eventf(service, corev1.EventTypeNormal, "AddedPortMapping", `mapped "%d" to "%s:%d" for port "%s"`, externalPort, ingress.IP, port.Port, portName)
+					r.Eventf(service, corev1.EventTypeNormal, "AddedPortMapping", "mapped %d to %s:%d for port %s", externalPort, ingress.IP, port.Port, portName)
 				}
 			}
 		} else {
-			r.Eventf(service, corev1.EventTypeNormal, "UnsupportedProtocol", `skipping UPnP for port with unsupported protocol "%s"`, port.Protocol)
+			r.Eventf(service, corev1.EventTypeNormal, "UnsupportedProtocol", "skipping UPnP for port with unsupported protocol %s", port.Protocol)
 		}
 	}
 
@@ -172,7 +172,7 @@ func (r *UPnPServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	return ctrl.Result{RequeueAfter: requeueAfter}, nil
 }
 
-func (r *UPnPServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *ServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.Client = mgr.GetClient()
 	r.EventRecorder = mgr.GetEventRecorderFor("portfwd")
 

@@ -9,6 +9,8 @@ import (
 	"github.com/google/nftables/expr"
 )
 
+// SourceIPAddressMasqer implements srcipmasq.SourceIPAddressMasqer
+// using nftables.
 type SourceIPAddressMasqer struct {
 	*nftables.Conn
 }
@@ -23,7 +25,7 @@ func (m *SourceIPAddressMasqer) MasqSourceIPAddress(ctx context.Context, masq *s
 	} else if masq.Destination.To16() != nil {
 		family = nftables.TableFamilyIPv6
 	} else {
-		return nil, fmt.Errorf(`unable to determine family of destination IP address "%s"`, masq.Destination)
+		return nil, fmt.Errorf("unable to determine family of destination IP address %s", masq.Destination)
 	}
 
 	var (
