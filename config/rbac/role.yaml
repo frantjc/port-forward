@@ -25,3 +25,9 @@ rules:
   - services/finalizers
   verbs:
   - update
+- apiGroups:
+  - ""
+  resources:
+  - services/status
+  verbs:
+  - update
