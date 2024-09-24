@@ -45,13 +45,13 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		service      = &corev1.Service{}
 		requeueAfter = time.Minute * 15
 		portMap      = map[int32]int32{}
-		cleanup = func() (ctrl.Result, error) {
+		cleanup      = func() (ctrl.Result, error) {
 			if controllerutil.RemoveFinalizer(service, Finalzier) {
 				if err := r.Client.Update(ctx, service); err != nil {
 					return ctrl.Result{Requeue: true}, nil
 				}
 			}
-		
+
 			return ctrl.Result{}, nil
 		}
 	)
@@ -148,9 +148,9 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 					Protocol:       upnp.Protocol(port.Protocol),
 					InternalPort:   port.Port,
 					InternalClient: net.ParseIP(ingress.IP),
-					Enabled: !ok || IsTruthy(enabled),
-					Description:   description,
-					LeaseDuration: leaseDuration,
+					Enabled:        !ok || IsTruthy(enabled),
+					Description:    description,
+					LeaseDuration:  leaseDuration,
 				}); err != nil {
 					r.Eventf(service, corev1.EventTypeWarning, "FailedPortMapping", "map %d to %s:%d for port %s failed with: %s", externalPort, ingress.IP, port.Port, portName, err.Error())
 				} else {
