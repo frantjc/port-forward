@@ -10,10 +10,10 @@ metadata:
     # 80 to 3000 instead of 3000 to 3000.
     pf.frantj.cc/port-map: 0:443,80:3000
     # UPnP-specific, optional annotations.
-	  upnp.pf.frantj.cc/remote-host: sample
-	  upnp.pf.frantj.cc/enabled: "true"
-    Default "port-forward <namespace>/<name> port <port.name>"
-	  upnp.pf.frantj.cc/description: port-forward
+    upnp.pf.frantj.cc/remote-host: sample
+    upnp.pf.frantj.cc/enabled: "true"
+    # Default "port-forward <namespace>/<name> port <port.name>"
+    upnp.pf.frantj.cc/description: port-forward
     # The reconcile loop will always requeue
     # half as often as the lease duration.
     # If you make the lease duration sufficiently small,
@@ -22,7 +22,7 @@ metadata:
     # blips in the port-forward between when the lease
     # expires and Port Forward renewing it.
     # Default 15m.
-	  upnp.pf.frantj.cc/lease-duration: 1h
+    upnp.pf.frantj.cc/lease-duration: 1h
 spec:
   type: LoadBalancer
   ports:
