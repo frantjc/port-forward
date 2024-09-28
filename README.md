@@ -1,4 +1,4 @@
-# port-forward
+# port-forward [![CI](https://github.com/frantjc/port-forward/actions/workflows/ci.yml/badge.svg?branch=main&event=push)](https://github.com/frantjc/port-forward/actions) [![godoc](https://pkg.go.dev/badge/github.com/frantjc/port-forward.svg)](https://pkg.go.dev/github.com/frantjc/port-forward) [![goreportcard](https://goreportcard.com/badge/github.com/frantjc/port-forward)](https://goreportcard.com/report/github.com/frantjc/port-forward)
 
 Port Forward is a Kubernetes Controller that forwards external ports to Kubernetes Services of type LoadBalancer which have been assigned private IP addresses. This is useful for clusters using something like MetalLB to expose Services internally that then want to expose some of them externally.
 
