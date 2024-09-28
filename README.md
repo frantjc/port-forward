@@ -36,7 +36,7 @@ EOF
 
 ## developing
 
-You’ll need a Kubernetes cluster to run against. You can use [KIND](https://sigs.k8s.io/kind) to get a local cluster for testing, or run against a remote cluster.
+You’ll need a Kubernetes cluster to run against. You can use [KIND](https://sigs.k8s.io/kind) to get a local cluster for testing. Running against a remote cluster is likely not to work as the UPnP implementations rely on being on the host network of a Node of the cluster.
 
 Port Forward will automatically use the current context in your kubeconfig file (i.e. whatever cluster `kubectl cluster-info` shows).
 
