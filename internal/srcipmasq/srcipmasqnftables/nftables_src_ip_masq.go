@@ -17,6 +17,10 @@ type SourceIPAddressMasqer struct {
 
 // MasqSourceIPAddress implements srcipmasq.SourceIPAddressMasqer.
 func (m *SourceIPAddressMasqer) MasqSourceIPAddress(ctx context.Context, masq *srcipmasq.Masq) (func() error, error) {
+	return nil, fmt.Errorf("unimplemented")
+}
+
+func (m *SourceIPAddressMasqer) masqSourceIPAddress(ctx context.Context, masq *srcipmasq.Masq) (func() error, error) {
 	var (
 		family nftables.TableFamily
 	)
