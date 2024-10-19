@@ -50,14 +50,6 @@ api: controller-gen
 .PHONY: config
 config: manifests
 
-.PHONY: install
-install:
-	@$(KUBECTL) kustomize config/crd | $(KUBECTL) apply -f-
-
-.PHONY: uninstall
-uninstall:
-	@$(KUBECTL) kustomize config/crd | $(KUBECTL) delete -f-
-
 .PHONY: run
 run: api config install fmt vet
 	@$(GO) $@ ./
