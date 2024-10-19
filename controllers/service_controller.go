@@ -1,4 +1,4 @@
-package controller
+package controllers
 
 import (
 	"context"
@@ -31,9 +31,9 @@ const (
 	Finalizer                   = "pf.frantj.cc/finalizer"
 	AnnotationForward           = "pf.frantj.cc/forward"
 	AnnotationPortMap           = "pf.frantj.cc/port-map"
+	AnnotationEnabled           = "pf.frantj.cc/enabled"
+	AnnotationDescription       = "pf.frantj.cc/description"
 	AnnotationUPnPRemoteHost    = "upnp.pf.frantj.cc/remote-host"
-	AnnotationUPnPEnabled       = "upnp.pf.frantj.cc/enabled"
-	AnnotationUPnPDescription   = "upnp.pf.frantj.cc/description"
 	AnnotationUPnPLeaseDuration = "upnp.pf.frantj.cc/lease-duration"
 )
 
@@ -156,7 +156,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 				continue
 			}
 
-			description, ok := service.Annotations[AnnotationUPnPDescription]
+			description, ok := service.Annotations[AnnotationDescription]
 			if !ok {
 				description = fmt.Sprintf(
 					"port-forward %s/%s port %s",
@@ -164,7 +164,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 				)
 			}
 
-			enabled, ok := service.Annotations[AnnotationUPnPEnabled]
+			enabled, ok := service.Annotations[AnnotationEnabled]
 
 			for _, ip := range ipAddresses {
 				if err := r.AddPortMapping(ctx, &upnp.PortMapping{

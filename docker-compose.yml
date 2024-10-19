@@ -2,8 +2,11 @@ services:
   portfwd:
     image: ghcr.io/frantjc/port-forward
     build: .
+    command:
+      - -VV
+      - --kubeconfig=/root/.kube/config
     volumes:
-      - ./.kube:/root/.kube:ro
+      - ~/.kube:/root/.kube:ro
     ports:
       - 8081:8081
       - 8082:8082

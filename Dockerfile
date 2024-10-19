@@ -1,4 +1,4 @@
-FROM golang:1.22 as build
+FROM golang:1.22 AS build
 ARG GOOS=linux
 ARG GOARCH
 
@@ -6,8 +6,10 @@ WORKDIR $GOPATH/src/github.com/frantjc/port-forward
 COPY go.mod go.sum ./
 RUN go mod download
 COPY main.go version.go ./
+COPY api/ api/
+COPY controllers/ controllers/
 COPY internal/ internal/
-RUN CGO_ENABLED=0 go build -a -o /manager main.go
+RUN CGO_ENABLED=0 go build -o /manager main.go
 
 FROM alpine
 WORKDIR /

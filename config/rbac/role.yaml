@@ -2,7 +2,6 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  creationTimestamp: null
   name: manager-role
 rules:
 - apiGroups:
@@ -20,8 +19,28 @@ rules:
   - list
   - watch
 - apiGroups:
-  - ""
+  - pf.frantj.cc
   resources:
-  - services/finalizers
+  - portforwards
   verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - pf.frantj.cc
+  resources:
+  - portforwards/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - pf.frantj.cc
+  resources:
+  - portforwards/status
+  verbs:
+  - get
+  - patch
   - update

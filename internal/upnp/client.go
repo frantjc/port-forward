@@ -11,16 +11,17 @@ import (
 	"github.com/huin/goupnp"
 	"github.com/huin/goupnp/dcps/internetgateway1"
 	"github.com/huin/goupnp/dcps/internetgateway2"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // Protocol is the protocol of a port.
-type Protocol string
+type Protocol corev1.Protocol
 
 var (
 	// ProtocolUDP is the UDP Protocol.
-	ProtocolUDP Protocol = "UDP"
+	ProtocolUDP = corev1.ProtocolUDP
 	// ProtocolTCP is the TCP Protocol.
-	ProtocolTCP Protocol = "TCP"
+	ProtocolTCP = corev1.ProtocolTCP
 )
 
 // PortMapping is the mapping of an external port

@@ -28,13 +28,6 @@ import (
 	"syscall"
 
 	"github.com/coreos/go-iptables/iptables"
-	"github.com/frantjc/port-forward/internal/controller"
-	"github.com/frantjc/port-forward/internal/portfwd/portfwdupnp"
-	"github.com/frantjc/port-forward/internal/srcipmasq/srcipmasqiptables"
-	"github.com/frantjc/port-forward/internal/svcip"
-	"github.com/frantjc/port-forward/internal/svcip/svcipdef"
-	"github.com/frantjc/port-forward/internal/svcip/svcipraw"
-	"github.com/frantjc/port-forward/internal/upnp"
 	xos "github.com/frantjc/x/os"
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
@@ -43,6 +36,13 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 
+	"github.com/frantjc/port-forward/internal/portfwd/portfwdupnp"
+	"github.com/frantjc/port-forward/internal/srcipmasq/srcipmasqiptables"
+	"github.com/frantjc/port-forward/internal/svcip"
+	"github.com/frantjc/port-forward/internal/svcip/svcipdef"
+	"github.com/frantjc/port-forward/internal/svcip/svcipraw"
+	"github.com/frantjc/port-forward/internal/upnp"
+
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -50,6 +50,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
+	"github.com/frantjc/port-forward/controllers"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -86,8 +88,8 @@ func NewEntrypoint() *cobra.Command {
 		leaderElection                                  bool
 		overrideIPAddressS                              string
 		cmd                                             = &cobra.Command{
-			Use:           "manager",
-			Version:       SemVer(),
+			Use: "manager",
+			// Version:       SemVer(),
 			SilenceErrors: true,
 			SilenceUsage:  true,
 			PreRun: func(cmd *cobra.Command, _ []string) {
@@ -120,14 +122,12 @@ func NewEntrypoint() *cobra.Command {
 					},
 					Logger:                        logr.FromContextOrDiscard(cmd.Context()),
 					LeaderElection:                leaderElection,
-					LeaderElectionID:              "e7a0a735.frantj.cc",
+					LeaderElectionID:              "e7a0a735.pf.frantj.cc",
 					LeaderElectionReleaseOnCancel: true,
 				})
 				if err != nil {
 					return err
 				}
-
-				//+kubebuilder:scaffold:builder
 
 				if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 					return err
@@ -162,7 +162,7 @@ func NewEntrypoint() *cobra.Command {
 					}
 				}
 
-				if err := (&controller.ServiceReconciler{
+				if err := (&controllers.ServiceReconciler{
 					ServiceIPAddressGetter: svcIPAddrGtr,
 					PortForwarder: &portfwdupnp.PortForwarder{
 						Client: upnpClient,
@@ -173,6 +173,8 @@ func NewEntrypoint() *cobra.Command {
 				}).SetupWithManager(mgr); err != nil {
 					return err
 				}
+
+				//+kubebuilder:scaffold:builder
 
 				return mgr.Start(ctx)
 			},
