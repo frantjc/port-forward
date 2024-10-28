@@ -11,8 +11,8 @@ require (
 	github.com/huin/goupnp v1.3.0
 	github.com/spf13/cobra v1.8.1
 	golang.org/x/exp v0.0.0-20230515195305-f3d0a9c9a5cc
-	k8s.io/api v0.31.1
-	k8s.io/apimachinery v0.31.1
+	k8s.io/api v0.31.2
+	k8s.io/apimachinery v0.31.2
 	k8s.io/client-go v0.31.1
 	sigs.k8s.io/controller-runtime v0.19.0
 )
