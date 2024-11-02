@@ -16,8 +16,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 type ServiceReconciler struct {
@@ -52,7 +54,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		service        = &corev1.Service{}
 		requeueAfter   = time.Minute * 15
 		portMap        = map[int32]int32{}
-		tmpPortNameMap = map[string]int32{}
+		tmpPortNameMap = map[string]any{}
 		portNameMap    = map[string]int32{}
 		cleanup        = func() (ctrl.Result, error) {
 			// TODO: Delete any forwarded ports. Not of the utmost importance due to
@@ -73,27 +75,17 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{Requeue: errors.IsNotFound(err)}, client.IgnoreNotFound(err)
 	}
 
-	forward, ok := service.Annotations[AnnotationForward]
-	if !ok {
-		return cleanup()
-	}
-
-	if !IsTruthy(forward) {
-		r.Eventf(service, corev1.EventTypeNormal, EventReasonAnnotation, "redundant falsy value %s in %s annotation", forward, AnnotationForward)
-		return cleanup()
-	}
-
-	if service.Spec.Type != corev1.ServiceTypeLoadBalancer {
-		r.Eventf(service, corev1.EventTypeWarning, EventReasonAnnotation, "truthy value %s in %s annotation on Service of type %s", forward, AnnotationForward, service.Spec.Type)
-		return cleanup()
-	}
-
 	if !service.GetDeletionTimestamp().IsZero() {
 		return cleanup()
 	}
 
+	if service.Spec.Type != corev1.ServiceTypeLoadBalancer {
+		r.Eventf(service, corev1.EventTypeWarning, EventReasonAnnotation, "cannot port forward to Service of type %s", service.Spec.Type)
+		return cleanup()
+	}
+
 	for _, port := range service.Spec.Ports {
-		tmpPortNameMap[port.Name] = 0
+		tmpPortNameMap[port.Name] = struct{}{}
 	}
 
 	if pm, ok := service.Annotations[AnnotationPortMap]; ok {
@@ -152,7 +144,6 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 			if externalPort <= 0 {
 				r.Eventf(service, corev1.EventTypeNormal, EventReasonForward, "skip port %s due to %s annotation mapping it to %d", portName, AnnotationPortMap, externalPort)
-
 				continue
 			}
 
@@ -173,7 +164,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 					Protocol:       upnp.Protocol(port.Protocol),
 					InternalPort:   port.Port,
 					InternalClient: ip,
-					Enabled:        !ok || IsTruthy(enabled),
+					Enabled:        !ok || isTruthy(enabled),
 					Description:    description,
 					LeaseDuration:  leaseDuration,
 				}); err != nil {
@@ -196,7 +187,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return ctrl.Result{RequeueAfter: requeueAfter}, nil
 }
 
-func IsTruthy(s string) bool {
+func isTruthy(s string) bool {
 	return xslice.Some([]string{"yes", "y", "1", "true"}, func(truthy string, _ int) bool {
 		return strings.EqualFold(s, truthy)
 	})
@@ -207,6 +198,15 @@ func (r *ServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.EventRecorder = mgr.GetEventRecorderFor("portfwd")
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&corev1.Service{}).
+		For(
+			&corev1.Service{},
+			builder.WithPredicates(predicate.NewPredicateFuncs(func(obj client.Object) bool {
+				// Only reconcile if this Service has the port forward annotation or
+				// finalizer. If it has the annotation, we need to port forward to it.
+				// If it has the finalizer, then we may need to port forward to it
+				// again or we may need to remove the finalizer.
+				return isTruthy(obj.GetAnnotations()[AnnotationForward]) || controllerutil.ContainsFinalizer(obj, Finalizer)
+			})),
+		).
 		Complete(r)
 }
