@@ -7,7 +7,7 @@ Port Forward is a Kubernetes Controller that forwards external ports to Kubernet
 Install Port Forward:
 
 ```sh
-kubectl kustomize https://github.com/frantjc/port-forward/config/default?ref=v0.1.5 | kubectl apply -f-
+kubectl kustomize https://github.com/frantjc/port-forward/config/default?ref=v0.1.6 | kubectl apply -f-
 ```
 
 > Don't have MetalLB or something else to assign an IP address to the Service? Try adding the argument `--override-ip-address=192.168.0.11` to Port Forward.
