@@ -88,8 +88,8 @@ func NewEntrypoint() *cobra.Command {
 		leaderElection                                  bool
 		overrideIPAddressS                              string
 		cmd                                             = &cobra.Command{
-			Use: "manager",
-			// Version:       SemVer(),
+			Use:           "manager",
+			Version:       SemVer(),
 			SilenceErrors: true,
 			SilenceUsage:  true,
 			PreRun: func(cmd *cobra.Command, _ []string) {
@@ -109,6 +109,8 @@ func NewEntrypoint() *cobra.Command {
 					return err
 				}
 
+				ctx := cmd.Context()
+
 				mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 					BaseContext:            cmd.Context,
 					Scheme:                 scheme,
@@ -120,7 +122,7 @@ func NewEntrypoint() *cobra.Command {
 					Metrics: server.Options{
 						BindAddress: BindAddressFromPort(metricsPort),
 					},
-					Logger:                        logr.FromContextOrDiscard(cmd.Context()),
+					Logger:                        logr.FromContextOrDiscard(ctx),
 					LeaderElection:                leaderElection,
 					LeaderElectionID:              "e7a0a735.pf.frantj.cc",
 					LeaderElectionReleaseOnCancel: true,
@@ -137,7 +139,6 @@ func NewEntrypoint() *cobra.Command {
 					return err
 				}
 
-				ctx := cmd.Context()
 				upnpClient, err := upnp.NewClient(ctx, upnp.WithAnyConnection)
 				if err != nil {
 					return err
@@ -156,7 +157,7 @@ func NewEntrypoint() *cobra.Command {
 				var svcIPAddrGtr svcip.ServiceIPAddressGetter = new(svcipdef.ServiceIPAddressGetter)
 				if overrideIPAddressS != "" {
 					if overrideIPAddress := net.ParseIP(overrideIPAddressS); overrideIPAddress == nil {
-						return fmt.Errorf("parse IP address: %s", overrideIPAddressS)
+						return fmt.Errorf("parse override IP address: %s", overrideIPAddressS)
 					} else {
 						svcIPAddrGtr = svcipraw.ServiceIPAddressGetter{overrideIPAddress}
 					}

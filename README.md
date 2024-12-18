@@ -36,7 +36,7 @@ EOF
 
 ## developing
 
-You’ll need a Kubernetes cluster to run against. You can use [KIND](https://sigs.k8s.io/kind) to get a local cluster for testing. Running against a remote cluster is likely not to work as the UPnP implementations rely on being on the host network of a Node of the cluster.
+You’ll need a Kubernetes cluster to run against. You can use [KIND](https://sigs.k8s.io/kind) to get a local cluster for testing. Running against a remote cluster is likely not to work as the UPnP implementation relies on being on the host network of a Node of the cluster.
 
 Port Forward will automatically use the current context in your kubeconfig file (i.e. whatever cluster `kubectl cluster-info` shows).
 
@@ -46,4 +46,4 @@ Uses a [Controller](https://kubernetes.io/docs/concepts/architecture/controller/
 
 More information can be found via the [Kubebuilder Documentation](https://book.kubebuilder.io/introduction.html).
 
-Uses SNAT and UPnP to tell a router what to port forward. Written in such a way that more secure implementations can be written for networking devices that support them such as OPNsense which has an API to do such things.
+Uses SNAT and UPnP to tell a router what to port forward. Written in such a way that more secure implementations can be written for networking devices that support them such as OPNsense.

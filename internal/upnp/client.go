@@ -17,7 +17,7 @@ import (
 // Protocol is the protocol of a port.
 type Protocol corev1.Protocol
 
-var (
+const (
 	// ProtocolUDP is the UDP Protocol.
 	ProtocolUDP = corev1.ProtocolUDP
 	// ProtocolTCP is the TCP Protocol.
@@ -52,7 +52,7 @@ func (c *Client) GetExternalIPAddress(ctx context.Context) (net.IP, error) {
 
 	ip := net.ParseIP(ips)
 	if ip == nil {
-		return nil, fmt.Errorf("unable to parse ip: %s", ips)
+		return nil, fmt.Errorf("unable to parse IP address: %s", ips)
 	}
 
 	return ip, nil
