@@ -58,12 +58,12 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		portNameMap    = map[string]int32{}
 		cleanup        = func() (ctrl.Result, error) {
 			// TODO: Delete any forwarded ports. Not of the utmost importance due to
-			// the forced lease duration automatically expiring it at some point in UPnP,
-			// but may become important in future implementations.
+			// the forced lease duration automatically expiring it at some point in
+			// UPnP, but may become important in future implementations.
 
 			if controllerutil.RemoveFinalizer(service, Finalizer) {
 				if err := r.Client.Update(ctx, service); err != nil {
-					return ctrl.Result{Requeue: true}, nil
+					return ctrl.Result{Requeue: !errors.IsNotFound(err)}, nil
 				}
 			}
 
@@ -72,7 +72,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	)
 
 	if err := r.Client.Get(ctx, req.NamespacedName, service); err != nil {
-		return ctrl.Result{Requeue: errors.IsNotFound(err)}, client.IgnoreNotFound(err)
+		return ctrl.Result{Requeue: !errors.IsNotFound(err)}, nil
 	}
 
 	if !service.GetDeletionTimestamp().IsZero() {
@@ -174,13 +174,11 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 				}
 			}
 		}
-	} else {
-		return ctrl.Result{RequeueAfter: time.Second * 9}, nil
 	}
 
 	if controllerutil.AddFinalizer(service, Finalizer) {
 		if err := r.Client.Update(ctx, service); err != nil {
-			return ctrl.Result{Requeue: true}, nil
+			return ctrl.Result{Requeue: !errors.IsNotFound(err)}, nil
 		}
 	}
 

@@ -109,6 +109,12 @@ type GoUPnPClient interface {
 		string,
 		uint32,
 	) error
+	DeletePortMappingCtx(
+		context.Context,
+		string,
+		uint16,
+		string,
+	) error
 }
 
 var (
