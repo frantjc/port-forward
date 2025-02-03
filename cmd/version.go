@@ -8,13 +8,13 @@ import (
 // GoReleaser sets these.
 var (
 	version = "0.1.0"
-	commit  = "unknown"
-	date    = "unknown"
-	builtBy = "unknown"
+	commit  = ""
+	date    = ""
+	builtBy = ""
 )
 
-// SemVer returns the semantic version of manager as
-// built from VersionCore and debug build info.
+// SemVer returns the semantic version of `manager` as
+// built from GoReleaser ldflags and debug build info.
 func SemVer() string {
 	semver := version
 
