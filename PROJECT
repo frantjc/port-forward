@@ -4,7 +4,7 @@
 # More info: https://book.kubebuilder.io/reference/project-config.html
 domain: pf.frantj.cc
 layout:
-- go.kubebuilder.io/v3
+- go.kubebuilder.io/v4
 projectName: port-forward
 repo: github.com/frantjc/port-forward
 version: "3"

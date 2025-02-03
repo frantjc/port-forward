@@ -1,8 +1,6 @@
 builds:
   - main: ./
     binary: manager
-    ldflags:
-      - -s -w -X github.com/frantjc/port-forward.Semver={{ .Version }}
     env:
       - CGO_ENABLED=0
     goos:

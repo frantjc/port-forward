@@ -5,20 +5,25 @@ import (
 	"strings"
 )
 
-// VersionCore is the SemVer version core of manager.
-// Meant to be be overridden at build time, but kept
-// up-to-date sometimes to best support `go install`.
-var VersionCore = "0.1.0"
+// GoReleaser sets these.
+var (
+	version = "0.1.0"
+	commit  = "unknown"
+	date    = "unknown"
+	builtBy = "unknown"
+)
 
 // SemVer returns the semantic version of manager as
 // built from VersionCore and debug build info.
 func SemVer() string {
-	semver := VersionCore
+	semver := version
 
 	if buildInfo, ok := debug.ReadBuildInfo(); ok {
 		var (
 			revision string
 			modified bool
+			_        = date
+			_        = builtBy
 		)
 		for _, setting := range buildInfo.Settings {
 			switch setting.Key {
@@ -27,6 +32,10 @@ func SemVer() string {
 			case "vcs.modified":
 				modified = setting.Value == "true"
 			}
+		}
+
+		if revision == "" {
+			revision = commit
 		}
 
 		if revision != "" {

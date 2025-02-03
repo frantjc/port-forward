@@ -35,6 +35,10 @@ ven: vendor
 ver: verify
 format: fmt
 
+.PHONY: api
+api: controller-gen
+	@$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+
 .PHONY: generate
 generate: api
 	@$(GO) $@ ./...
@@ -42,10 +46,6 @@ generate: api
 .PHONY: manifests
 manifests: controller-gen
 	@$(CONTROLLER_GEN) crd rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
-
-.PHONY: api
-api: controller-gen
-	@$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 .PHONY: config
 config: manifests

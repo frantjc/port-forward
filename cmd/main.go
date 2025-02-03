@@ -51,7 +51,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	"github.com/frantjc/port-forward/controllers"
+	"github.com/frantjc/port-forward/internal/controller"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -163,7 +163,7 @@ func NewEntrypoint() *cobra.Command {
 					}
 				}
 
-				if err := (&controllers.ServiceReconciler{
+				if err := (&controller.ServiceReconciler{
 					ServiceIPAddressGetter: svcIPAddrGtr,
 					PortForwarder: &portfwdupnp.PortForwarder{
 						Client: upnpClient,
