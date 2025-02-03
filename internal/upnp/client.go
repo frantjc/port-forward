@@ -130,7 +130,7 @@ type NewClientOpts struct {
 
 type NewClientOpt func(*NewClientOpts)
 
-func castTogoUPnPClients[client GoUPnPClient](clients []client) []GoUPnPClient {
+func castToGoUPnPClients[client GoUPnPClient](clients []client) []GoUPnPClient {
 	return xslice.Map(clients, func(cli client, _ int) GoUPnPClient {
 		return cli
 	})
@@ -143,7 +143,7 @@ func WithIG2WANIPConnection2(opts *NewClientOpts) {
 
 	opts.getClients = append(opts.getClients, func(ctx context.Context) ([]GoUPnPClient, []error, error) {
 		clients, errs, err := internetgateway2.NewWANIPConnection2ClientsCtx(ctx)
-		return castTogoUPnPClients(clients), errs, err
+		return castToGoUPnPClients(clients), errs, err
 	})
 }
 
@@ -154,7 +154,7 @@ func WithIG2WANIPConnection1(opts *NewClientOpts) {
 
 	opts.getClients = append(opts.getClients, func(ctx context.Context) ([]GoUPnPClient, []error, error) {
 		clients, errs, err := internetgateway2.NewWANIPConnection1ClientsCtx(ctx)
-		return castTogoUPnPClients(clients), errs, err
+		return castToGoUPnPClients(clients), errs, err
 	})
 }
 
@@ -165,7 +165,7 @@ func WithIG2WANPPPConnection1(opts *NewClientOpts) {
 
 	opts.getClients = append(opts.getClients, func(ctx context.Context) ([]GoUPnPClient, []error, error) {
 		clients, errs, err := internetgateway2.NewWANPPPConnection1ClientsCtx(ctx)
-		return castTogoUPnPClients(clients), errs, err
+		return castToGoUPnPClients(clients), errs, err
 	})
 }
 
@@ -176,7 +176,7 @@ func WithIG1WANIP1Connection1(opts *NewClientOpts) {
 
 	opts.getClients = append(opts.getClients, func(ctx context.Context) ([]GoUPnPClient, []error, error) {
 		clients, errs, err := internetgateway1.NewWANIPConnection1ClientsCtx(ctx)
-		return castTogoUPnPClients(clients), errs, err
+		return castToGoUPnPClients(clients), errs, err
 	})
 }
 
@@ -187,7 +187,7 @@ func WithIG1WANPPP1Connection1(opts *NewClientOpts) {
 
 	opts.getClients = append(opts.getClients, func(ctx context.Context) ([]GoUPnPClient, []error, error) {
 		clients, errs, err := internetgateway1.NewWANPPPConnection1ClientsCtx(ctx)
-		return castTogoUPnPClients(clients), errs, err
+		return castToGoUPnPClients(clients), errs, err
 	})
 }
 
