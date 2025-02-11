@@ -1,6 +1,5 @@
 builds:
-  - main: ./
-    binary: manager
+  - main: ./cmd/portfwd
     env:
       - CGO_ENABLED=0
     goos:

@@ -18,12 +18,14 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"log/slog"
 	"net"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime"
 	"syscall"
 
@@ -36,22 +38,20 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 
+	"github.com/frantjc/port-forward/internal/controller"
 	"github.com/frantjc/port-forward/internal/portfwd/portfwdupnp"
 	"github.com/frantjc/port-forward/internal/srcipmasq/srcipmasqiptables"
 	"github.com/frantjc/port-forward/internal/svcip"
 	"github.com/frantjc/port-forward/internal/svcip/svcipdef"
 	"github.com/frantjc/port-forward/internal/svcip/svcipraw"
 	"github.com/frantjc/port-forward/internal/upnp"
-
-	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
-	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
-	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
-
-	"github.com/frantjc/port-forward/internal/controller"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -80,15 +80,20 @@ func init() {
 }
 
 // NewEntrypoint returns the command which acts as
-// the entrypoint for `manager`.
+// the entrypoint for `portfwd`.
 func NewEntrypoint() *cobra.Command {
 	var (
-		verbosity                                       int
-		healthPort, metricsPort, pprofPort, webhookPort int
-		leaderElection                                  bool
-		overrideIPAddressS                              string
-		cmd                                             = &cobra.Command{
-			Use:           "manager",
+		metricsAddr                                      string
+		metricsCertPath, metricsCertName, metricsCertKey string
+		webhookCertPath, webhookCertName, webhookCertKey string
+		enableLeaderElection                             bool
+		probeAddr                                        string
+		secureMetrics                                    bool
+		enableHTTP2                                      bool
+		verbosity                                        int
+		overrideIPAddressS                               string
+		cmd                                              = &cobra.Command{
+			Use:           "portfwd",
 			Version:       SemVer(),
 			SilenceErrors: true,
 			SilenceUsage:  true,
@@ -109,22 +114,74 @@ func NewEntrypoint() *cobra.Command {
 					return err
 				}
 
-				ctx := cmd.Context()
+				var (
+					ctx     = cmd.Context()
+					tlsOpts []func(*tls.Config)
+				)
+
+				if !enableHTTP2 {
+					tlsOpts = append(tlsOpts, func(c *tls.Config) {
+						c.NextProtos = []string{"http/1.1"}
+					})
+				}
+
+				var (
+					metricsCertWatcher *certwatcher.CertWatcher
+					webhookCertWatcher *certwatcher.CertWatcher
+					webhookTLSOpts     = tlsOpts
+				)
+
+				if len(webhookCertPath) > 0 {
+					var err error
+					webhookCertWatcher, err = certwatcher.New(
+						filepath.Join(webhookCertPath, webhookCertName),
+						filepath.Join(webhookCertPath, webhookCertKey),
+					)
+					if err != nil {
+						return err
+					}
+
+					webhookTLSOpts = append(webhookTLSOpts, func(config *tls.Config) {
+						config.GetCertificate = webhookCertWatcher.GetCertificate
+					})
+				}
+
+				webhookServer := webhook.NewServer(webhook.Options{
+					TLSOpts: webhookTLSOpts,
+				})
+
+				metricsServerOptions := metricsserver.Options{
+					BindAddress:   metricsAddr,
+					SecureServing: secureMetrics,
+					TLSOpts:       tlsOpts,
+				}
+
+				if secureMetrics {
+					metricsServerOptions.FilterProvider = filters.WithAuthenticationAndAuthorization
+				}
+
+				if len(metricsCertPath) > 0 {
+					var err error
+					metricsCertWatcher, err = certwatcher.New(
+						filepath.Join(metricsCertPath, metricsCertName),
+						filepath.Join(metricsCertPath, metricsCertKey),
+					)
+					if err != nil {
+						return err
+					}
+
+					metricsServerOptions.TLSOpts = append(metricsServerOptions.TLSOpts, func(config *tls.Config) {
+						config.GetCertificate = metricsCertWatcher.GetCertificate
+					})
+				}
 
 				mgr, err := ctrl.NewManager(cfg, ctrl.Options{
-					BaseContext:            cmd.Context,
-					Scheme:                 scheme,
-					HealthProbeBindAddress: BindAddressFromPort(healthPort),
-					PprofBindAddress:       BindAddressFromPort(pprofPort),
-					WebhookServer: webhook.NewServer(webhook.Options{
-						Port: webhookPort,
-					}),
-					Metrics: server.Options{
-						BindAddress: BindAddressFromPort(metricsPort),
-					},
-					Logger:                        logr.FromContextOrDiscard(ctx),
-					LeaderElection:                leaderElection,
-					LeaderElectionID:              "e7a0a735.pf.frantj.cc",
+					Scheme:                        scheme,
+					Metrics:                       metricsServerOptions,
+					WebhookServer:                 webhookServer,
+					HealthProbeBindAddress:        probeAddr,
+					LeaderElection:                enableLeaderElection,
+					LeaderElectionID:              "e7a0a735.frantj.cc",
 					LeaderElectionReleaseOnCancel: true,
 				})
 				if err != nil {
@@ -177,6 +234,18 @@ func NewEntrypoint() *cobra.Command {
 
 				//+kubebuilder:scaffold:builder
 
+				if metricsCertWatcher != nil {
+					if err := mgr.Add(metricsCertWatcher); err != nil {
+						return err
+					}
+				}
+
+				if webhookCertWatcher != nil {
+					if err := mgr.Add(webhookCertWatcher); err != nil {
+						return err
+					}
+				}
+
 				return mgr.Start(ctx)
 			},
 		}
@@ -188,11 +257,23 @@ func NewEntrypoint() *cobra.Command {
 	// Just allow this flag to be passed, it's parsed by ctrl.GetConfig().
 	cmd.PersistentFlags().String("kubeconfig", "", "Kube config")
 
-	cmd.Flags().IntVar(&healthPort, "health-port", 8081, "health port")
-	cmd.Flags().IntVar(&metricsPort, "metrics-port", 8082, "metrics port")
-	cmd.Flags().IntVar(&pprofPort, "pprof-port", 8083, "pprof port")
-	cmd.Flags().IntVar(&webhookPort, "webhook-port", webhook.DefaultPort, "webhook port")
-	cmd.Flags().BoolVar(&leaderElection, "leader-election", false, "leader election")
+	cmd.Flags().StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
+		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
+	cmd.Flags().StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
+	cmd.Flags().BoolVar(&enableLeaderElection, "leader-elect", false,
+		"Enable leader election for controller manager. "+
+			"Enabling this will ensure there is only one active controller manager.")
+	cmd.Flags().BoolVar(&secureMetrics, "metrics-secure", true,
+		"If set, the metrics endpoint is served securely via HTTPS. Use --metrics-secure=false to use HTTP instead.")
+	cmd.Flags().StringVar(&webhookCertPath, "webhook-cert-path", "", "The directory that contains the webhook certificate.")
+	cmd.Flags().StringVar(&webhookCertName, "webhook-cert-name", "tls.crt", "The name of the webhook certificate file.")
+	cmd.Flags().StringVar(&webhookCertKey, "webhook-cert-key", "tls.key", "The name of the webhook key file.")
+	cmd.Flags().StringVar(&metricsCertPath, "metrics-cert-path", "",
+		"The directory that contains the metrics server certificate.")
+	cmd.Flags().StringVar(&metricsCertName, "metrics-cert-name", "tls.crt", "The name of the metrics server certificate file.")
+	cmd.Flags().StringVar(&metricsCertKey, "metrics-cert-key", "tls.key", "The name of the metrics server key file.")
+	cmd.Flags().BoolVar(&enableHTTP2, "enable-http2", false,
+		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
 
 	cmd.Flags().StringVar(&overrideIPAddressS, "override-ip-address", "", "IP address to use instead of getting it from a Service")
 

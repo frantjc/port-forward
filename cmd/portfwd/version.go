@@ -13,7 +13,7 @@ var (
 	builtBy = ""
 )
 
-// SemVer returns the semantic version of `manager` as
+// SemVer returns the semantic version of `portfwd` as
 // built from GoReleaser ldflags and debug build info.
 func SemVer() string {
 	semver := version
