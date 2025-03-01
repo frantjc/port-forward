@@ -30,14 +30,6 @@ import (
 	"syscall"
 
 	"github.com/coreos/go-iptables/iptables"
-	xos "github.com/frantjc/x/os"
-	"github.com/go-logr/logr"
-	"github.com/spf13/cobra"
-	"golang.org/x/exp/constraints"
-	k8sruntime "k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-
 	"github.com/frantjc/port-forward/internal/controller"
 	"github.com/frantjc/port-forward/internal/portfwd/portfwdupnp"
 	"github.com/frantjc/port-forward/internal/srcipmasq/srcipmasqiptables"
@@ -45,6 +37,12 @@ import (
 	"github.com/frantjc/port-forward/internal/svcip/svcipdef"
 	"github.com/frantjc/port-forward/internal/svcip/svcipraw"
 	"github.com/frantjc/port-forward/internal/upnp"
+	xos "github.com/frantjc/x/os"
+	"github.com/go-logr/logr"
+	"github.com/spf13/cobra"
+	k8sruntime "k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
@@ -52,7 +50,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
-	//+kubebuilder:scaffold:imports
+	// +kubebuilder:scaffold:imports
 )
 
 func main() {
@@ -62,7 +60,7 @@ func main() {
 	)
 
 	if err = NewEntrypoint().ExecuteContext(ctx); err != nil && !errors.Is(err, context.Canceled) {
-		os.Stderr.WriteString(err.Error() + "\n")
+		_, _ = os.Stderr.WriteString(err.Error() + "\n")
 		stop()
 		xos.ExitFromError(err)
 	}
@@ -76,7 +74,7 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	//+kubebuilder:scaffold:scheme
+	// +kubebuilder:scaffold:scheme
 }
 
 // NewEntrypoint returns the command which acts as
@@ -232,7 +230,7 @@ func NewEntrypoint() *cobra.Command {
 					return err
 				}
 
-				//+kubebuilder:scaffold:builder
+				// +kubebuilder:scaffold:builder
 
 				if metricsCertWatcher != nil {
 					if err := mgr.Add(metricsCertWatcher); err != nil {
@@ -258,32 +256,27 @@ func NewEntrypoint() *cobra.Command {
 	cmd.PersistentFlags().String("kubeconfig", "", "Kube config")
 
 	cmd.Flags().StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
-		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
-	cmd.Flags().StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
+		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service")
+	cmd.Flags().StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to")
 	cmd.Flags().BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
-			"Enabling this will ensure there is only one active controller manager.")
+			"Enabling this will ensure there is only one active controller manager")
 	cmd.Flags().BoolVar(&secureMetrics, "metrics-secure", true,
-		"If set, the metrics endpoint is served securely via HTTPS. Use --metrics-secure=false to use HTTP instead.")
-	cmd.Flags().StringVar(&webhookCertPath, "webhook-cert-path", "", "The directory that contains the webhook certificate.")
-	cmd.Flags().StringVar(&webhookCertName, "webhook-cert-name", "tls.crt", "The name of the webhook certificate file.")
-	cmd.Flags().StringVar(&webhookCertKey, "webhook-cert-key", "tls.key", "The name of the webhook key file.")
+		"If set, the metrics endpoint is served securely via HTTPS. Use --metrics-secure=false to use HTTP instead")
+	cmd.Flags().StringVar(&webhookCertPath, "webhook-cert-path", "", "The directory that contains the webhook certificate")
+	cmd.Flags().StringVar(&webhookCertName, "webhook-cert-name", "tls.crt",
+		"The name of the webhook certificate file")
+	cmd.Flags().StringVar(&webhookCertKey, "webhook-cert-key", "tls.key", "The name of the webhook key file")
 	cmd.Flags().StringVar(&metricsCertPath, "metrics-cert-path", "",
-		"The directory that contains the metrics server certificate.")
-	cmd.Flags().StringVar(&metricsCertName, "metrics-cert-name", "tls.crt", "The name of the metrics server certificate file.")
-	cmd.Flags().StringVar(&metricsCertKey, "metrics-cert-key", "tls.key", "The name of the metrics server key file.")
+		"The directory that contains the metrics server certificate")
+	cmd.Flags().StringVar(&metricsCertName, "metrics-cert-name", "tls.crt",
+		"The name of the metrics server certificate file")
+	cmd.Flags().StringVar(&metricsCertKey, "metrics-cert-key", "tls.key", "The name of the metrics server key file")
 	cmd.Flags().BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
 
-	cmd.Flags().StringVar(&overrideIPAddressS, "override-ip-address", "", "IP address to use instead of getting it from a Service")
+	cmd.Flags().StringVar(&overrideIPAddressS, "override-ip-address", "",
+		"IP address to use instead of getting it from a Service")
 
 	return cmd
-}
-
-func BindAddressFromPort[T constraints.Integer](port T) string {
-	if port <= 0 {
-		return "0"
-	}
-
-	return fmt.Sprint(":", port)
 }

@@ -1,4 +1,3 @@
-
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
 else
@@ -8,11 +7,7 @@ endif
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
-GO = go
-
-.PHONY: help
-help:
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+GO ?= go
 
 .PHONY: fmt vet test
 fmt vet test:
@@ -23,7 +18,7 @@ download vendor verify:
 	@$(GO) mod $@
 
 .PHONY: lint
-lint: fmt $(GOLANGCI_LINT)
+lint: fmt golangci-lint
 	@$(GOLANGCI_LINT) run --fix
 
 .PHONY: gen dl ven ver format
@@ -34,12 +29,11 @@ ver: verify
 format: fmt
 
 .PHONY: api
-api: controller-gen
-	@$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+api: generate
 
 .PHONY: generate
-generate: api
-	@$(GO) $@ ./...
+generate: controller-gen
+	@$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 .PHONY: manifests
 manifests: controller-gen
@@ -77,13 +71,11 @@ $(GOLANGCI_LINT): $(LOCALBIN)
 	@$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/cmd/golangci-lint,$(GOLANGCI_LINT_VERSION))
 
 define go-install-tool
-@[ -f "$(1)-$(3)" ] || { \
+@[ -f "$(1)" ] || { \
 set -e; \
 package=$(2)@$(3) ;\
 echo "Downloading $${package}" ;\
 rm -f $(1) || true ;\
 GOBIN=$(LOCALBIN) go install $${package} ;\
-mv $(1) $(1)-$(3) ;\
-} ;\
-ln -sf $(1)-$(3) $(1)
+} ;
 endef

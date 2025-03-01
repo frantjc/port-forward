@@ -1,3 +1,4 @@
+version: 2
 builds:
   - main: ./cmd/portfwd
     env:
@@ -17,6 +18,8 @@ changelog:
       - Merge pull request
       - Merge remote-tracking branch
       - Merge branch
+release:
+  skip_upload: true
 dockers:
   - dockerfile: goreleaser.Dockerfile
     image_templates:

@@ -7,8 +7,3 @@ services:
       - --kubeconfig=/root/.kube/config
     volumes:
       - ~/.kube:/root/.kube:ro
-    ports:
-      - 8081:8081
-      - 8082:8082
-      - 8083:8083
-      - 9443:9443

@@ -20,7 +20,7 @@ func (m *SourceIPAddressMasqer) MasqSourceIPAddress(ctx context.Context, masq *s
 	return nil, fmt.Errorf("unimplemented")
 }
 
-func (m *SourceIPAddressMasqer) masqSourceIPAddress(ctx context.Context, masq *srcipmasq.Masq) (func() error, error) {
+func (m *SourceIPAddressMasqer) MasqSourceIPAddress_(ctx context.Context, masq *srcipmasq.Masq) (func() error, error) {
 	var (
 		family nftables.TableFamily
 	)

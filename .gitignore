@@ -1,10 +1,18 @@
 # IDE
+.idea/
 .vscode/
 
-# macOS
-.DS_Store
+# make
+bin/
 
 # goreleaser
 dist/
 
-bin/
+# macOS
+.DS_Store
+
+# mkdocs
+site/
+gh-pages/
+
+.env
