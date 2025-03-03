@@ -50,7 +50,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
-	// +kubebuilder:scaffold:imports
 )
 
 func main() {
@@ -74,7 +73,6 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	// +kubebuilder:scaffold:scheme
 }
 
 // NewEntrypoint returns the command which acts as
@@ -174,6 +172,7 @@ func NewEntrypoint() *cobra.Command {
 				}
 
 				mgr, err := ctrl.NewManager(cfg, ctrl.Options{
+					BaseContext:                   cmd.Context,
 					Scheme:                        scheme,
 					Metrics:                       metricsServerOptions,
 					WebhookServer:                 webhookServer,
@@ -229,8 +228,6 @@ func NewEntrypoint() *cobra.Command {
 				}).SetupWithManager(mgr); err != nil {
 					return err
 				}
-
-				// +kubebuilder:scaffold:builder
 
 				if metricsCertWatcher != nil {
 					if err := mgr.Add(metricsCertWatcher); err != nil {
