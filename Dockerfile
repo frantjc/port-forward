@@ -9,10 +9,10 @@ COPY main.go version.go ./
 COPY api/ api/
 COPY controllers/ controllers/
 COPY internal/ internal/
-RUN CGO_ENABLED=0 go build -o /manager main.go
+RUN CGO_ENABLED=0 go build -o /portfwd ./cmd/portfwd
 
 FROM alpine
 WORKDIR /
 RUN apk add iptables
-COPY --from=build /manager /usr/local/bin
-ENTRYPOINT ["/usr/local/bin/manager"]
+COPY --from=build /portfwd /usr/local/bin
+ENTRYPOINT ["/usr/local/bin/portfwd"]

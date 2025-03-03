@@ -1,6 +1,7 @@
 version: 2
 builds:
   - main: ./cmd/portfwd
+    binary: portfwd
     env:
       - CGO_ENABLED=0
     goos:
@@ -10,6 +11,9 @@ builds:
     hooks:
       post:
         - upx {{ .Path }}
+release:
+  prerelease: auto
+  skip_upload: true
 changelog:
   use: github
   filters:
@@ -18,8 +22,6 @@ changelog:
       - Merge pull request
       - Merge remote-tracking branch
       - Merge branch
-release:
-  skip_upload: true
 dockers:
   - dockerfile: goreleaser.Dockerfile
     image_templates:
