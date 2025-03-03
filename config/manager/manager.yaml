@@ -51,7 +51,7 @@ spec:
           args:
             - --leader-elect
             - --health-probe-bind-address=:8081
-          name: port-forward
+          name: manager
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
