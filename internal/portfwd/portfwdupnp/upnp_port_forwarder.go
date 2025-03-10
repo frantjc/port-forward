@@ -2,6 +2,7 @@ package portfwdupnp
 
 import (
 	"context"
+	"sync"
 
 	"github.com/frantjc/port-forward/internal/portfwd"
 	"github.com/frantjc/port-forward/internal/srcipmasq"
@@ -11,9 +12,13 @@ import (
 type PortForwarder struct {
 	*upnp.Client
 	srcipmasq.SourceIPAddressMasqer
+	mu sync.Mutex
 }
 
 func (p *PortForwarder) AddPortMapping(ctx context.Context, pm *portfwd.PortMapping) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	destination, err := p.GetServiceIPAddress(ctx)
 	if err != nil {
 		return err
