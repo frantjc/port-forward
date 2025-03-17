@@ -14,5 +14,5 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - uses: golangci/golangci-lint-action@v6.5.0
+      - uses: golangci/golangci-lint-action@v6.5.1
       - run: make test
