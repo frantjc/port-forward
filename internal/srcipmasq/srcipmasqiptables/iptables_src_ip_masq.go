@@ -26,10 +26,10 @@ func (m *SourceIPAddressMasqer) MasqSourceIPAddress(ctx context.Context, masq *s
 		}
 	)
 
-	if err := m.IPTables.Append(table, chain, ruleSpec...); err != nil {
+	if err := m.Append(table, chain, ruleSpec...); err != nil {
 		return nil, err
 	}
 	return func() error {
-		return m.IPTables.DeleteIfExists(table, chain, ruleSpec...)
+		return m.DeleteIfExists(table, chain, ruleSpec...)
 	}, nil
 }

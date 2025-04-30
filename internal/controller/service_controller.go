@@ -62,7 +62,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			// UPnP, but may become important in future implementations.
 
 			if controllerutil.RemoveFinalizer(service, Finalizer) {
-				if err := r.Client.Update(ctx, service); err != nil {
+				if err := r.Update(ctx, service); err != nil {
 					return ctrl.Result{Requeue: !errors.IsNotFound(err)}, nil
 				}
 			}
@@ -71,7 +71,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 	)
 
-	if err := r.Client.Get(ctx, req.NamespacedName, service); err != nil {
+	if err := r.Get(ctx, req.NamespacedName, service); err != nil {
 		return ctrl.Result{Requeue: !errors.IsNotFound(err)}, nil
 	}
 
@@ -129,7 +129,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 	}
 
-	if ipAddresses := r.ServiceIPAddressGetter.GetServiceIPAddresses(service); len(ipAddresses) > 0 {
+	if ipAddresses := r.GetServiceIPAddresses(service); len(ipAddresses) > 0 {
 		for _, port := range service.Spec.Ports {
 			portName := xslice.Coalesce(port.Name, fmt.Sprint(port.Port))
 
@@ -151,7 +151,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			if !ok {
 				description = fmt.Sprintf(
 					"port-forward %s/%s port %s",
-					service.ObjectMeta.Namespace, service.ObjectMeta.Name, portName,
+					service.Namespace, service.Name, portName,
 				)
 			}
 
@@ -177,7 +177,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	if controllerutil.AddFinalizer(service, Finalizer) {
-		if err := r.Client.Update(ctx, service); err != nil {
+		if err := r.Update(ctx, service); err != nil {
 			return ctrl.Result{Requeue: !errors.IsNotFound(err)}, nil
 		}
 	}

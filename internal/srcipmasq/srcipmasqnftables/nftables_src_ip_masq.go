@@ -33,18 +33,18 @@ func (m *SourceIPAddressMasqer) MasqSourceIPAddress_(ctx context.Context, masq *
 	}
 
 	var (
-		table = m.Conn.AddTable(&nftables.Table{
+		table = m.AddTable(&nftables.Table{
 			Name:   "nat",
 			Family: family,
 		})
-		chain = m.Conn.AddChain(&nftables.Chain{
+		chain = m.AddChain(&nftables.Chain{
 			Name:     "postrouting",
 			Table:    table,
 			Hooknum:  nftables.ChainHookPostrouting,
 			Priority: nftables.ChainPriorityNATSource,
 			Type:     nftables.ChainTypeNAT,
 		})
-		rule = m.Conn.AddRule(&nftables.Rule{
+		rule = m.AddRule(&nftables.Rule{
 			Table: table,
 			Chain: chain,
 			Exprs: []expr.Any{
@@ -56,6 +56,6 @@ func (m *SourceIPAddressMasqer) MasqSourceIPAddress_(ctx context.Context, masq *
 	)
 
 	return func() error {
-		return m.Conn.DelRule(rule)
-	}, m.Conn.Flush()
+		return m.DelRule(rule)
+	}, m.Flush()
 }
