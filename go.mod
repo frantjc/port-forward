@@ -1,7 +1,8 @@
 module github.com/frantjc/port-forward
 
-go 1.23.0
-toolchain go1.24.1
+go 1.24.0
+
+toolchain go1.24.2
 
 require (
 	github.com/coreos/go-iptables v0.8.0
