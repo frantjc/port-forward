@@ -6,7 +6,7 @@ toolchain go1.24.2
 
 require (
 	github.com/coreos/go-iptables v0.8.0
-	github.com/go-logr/logr v1.4.2
+	github.com/go-logr/logr v1.4.3
 	github.com/google/nftables v0.3.0
 	github.com/huin/goupnp v1.3.0
 	github.com/spf13/cobra v1.9.1
