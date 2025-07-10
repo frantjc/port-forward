@@ -8,9 +8,17 @@ builds:
       - linux
     goarch:
       - amd64
-    hooks:
-      post:
-        - upx {{ .Path }}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath
+upx:
+  - enabled: true
+checksum:
+  name_template: checksums.txt
+source:
+  enabled: true
+sboms:
+  - artifacts: source
 release:
   prerelease: auto
   skip_upload: true
@@ -29,3 +37,18 @@ dockers:
       - ghcr.io/frantjc/port-forward:{{ .Major }}.{{ .Minor }}
       - ghcr.io/frantjc/port-forward:{{ .Major }}
       - ghcr.io/frantjc/port-forward:latest
+    build_flag_templates:
+      - --pull
+      - --label=org.opencontainers.image.created={{ .Date }}
+      - --label=org.opencontainers.image.title={{ .ProjectName }}
+      - --label=org.opencontainers.image.revision={{ .FullCommit }}
+      - --label=org.opencontainers.image.version={{ .Version }}
+      - --platform=linux/amd64
+docker_signs:
+  - cmd: cosign
+    artifacts: images
+    args:
+      - "sign"
+      - "${artifact}"
+      - "--yes"
+    output: true

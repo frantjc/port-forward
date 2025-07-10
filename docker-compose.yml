@@ -6,4 +6,4 @@ services:
       - -VV
       - --kubeconfig=/root/.kube/config
     volumes:
-      - ~/.kube:/root/.kube:ro
+      - ${KUBECONFIG:-~/.kube/config}:/root/.kube/config:ro

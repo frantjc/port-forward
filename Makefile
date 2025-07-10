@@ -36,7 +36,7 @@ generate: controller-gen
 	@$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 .PHONY: manifests
-manifests: controller-gen
+manifests: generate
 	@$(CONTROLLER_GEN) crd rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
 .PHONY: config
