@@ -11,7 +11,7 @@ require (
 	github.com/huin/goupnp v1.3.0
 	github.com/spf13/cobra v1.9.1
 	k8s.io/api v0.34.0
-	k8s.io/apimachinery v0.34.0
+	k8s.io/apimachinery v0.34.1
 	k8s.io/client-go v0.34.0
 	sigs.k8s.io/controller-runtime v0.21.0
 )
