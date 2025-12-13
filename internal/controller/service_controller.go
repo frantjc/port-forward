@@ -119,12 +119,12 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		defaultLeaseDuration = requeueAfter * 2
 		leaseDuration        = defaultLeaseDuration
 	)
-	if leaseDurationS, ok := service.Annotations[AnnotationUPnPLeaseDuration]; ok {
+	if rawLeaseDuration, ok := service.Annotations[AnnotationUPnPLeaseDuration]; ok {
 		var err error
-		leaseDuration, err = time.ParseDuration(leaseDurationS)
+		leaseDuration, err = time.ParseDuration(rawLeaseDuration)
 		if err != nil {
 			leaseDuration = defaultLeaseDuration
-			r.Eventf(service, corev1.EventTypeWarning, EventReasonAnnotation, "using default lease duration %s due to invalid duration %s in %s annotation", leaseDuration, leaseDurationS, AnnotationUPnPLeaseDuration)
+			r.Eventf(service, corev1.EventTypeWarning, EventReasonAnnotation, "using default lease duration %s due to invalid duration %s in %s annotation", leaseDuration, rawLeaseDuration, AnnotationUPnPLeaseDuration)
 		} else {
 			requeueAfter = leaseDuration / 2
 		}
@@ -159,7 +159,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			enabled, ok := service.Annotations[AnnotationEnabled]
 
 			for _, ip := range ipAddresses {
-				if err := r.AddPortMapping(ctx, &upnp.PortMapping{
+				if err := r.AddPortMapping(ctx, &portfwd.PortMapping{
 					RemoteHost:     service.Annotations[AnnotationUPnPRemoteHost],
 					ExternalPort:   externalPort,
 					Protocol:       upnp.Protocol(port.Protocol),
