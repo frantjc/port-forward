@@ -21,8 +21,8 @@ metadata:
     # it may not leave the reconcile loop enough time to
     # renew the lease before it expires, leading to blips
     # between when the lease expires and Port Forward renewing it.
-    # Default 15m.
-    upnp.pf.frantj.cc/lease-duration: 1h
+    # Default 1h.
+    upnp.pf.frantj.cc/lease-duration: 15m
 spec:
   type: LoadBalancer
   ports:

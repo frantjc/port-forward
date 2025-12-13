@@ -1,0 +1,112 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/name: port-forward
+    app.kubernetes.io/managed-by: kustomize
+  name: port-forward
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/name: port-forward
+    app.kubernetes.io/managed-by: kustomize
+  name: port-forward
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: port-forward
+subjects:
+  - kind: ServiceAccount
+    name: port-forward
+    namespace: kube-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: port-forward
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: port-forward
+    app.kubernetes.io/managed-by: kustomize
+spec:
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: port-forward
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: portfwd
+      labels:
+        app.kubernetes.io/name: port-forward
+    spec:
+      securityContext:
+        fsGroup: 1001
+        runAsUser: 1001
+        runAsGroup: 1001
+      serviceAccount: port-forward
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/arch
+                    operator: In
+                    values:
+                      - amd64
+                  - key: kubernetes.io/os
+                    operator: In
+                    values:
+                      - linux
+      hostNetwork: true
+      containers:
+        - name: portfwd
+          image: ghcr.io/frantjc/port-forward:0.1.8
+          args:
+            - --leader-elect
+            - --probe-addr=$(POD_IP):8082
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+          securityContext:
+            allowPrivilegeEscalation: false
+            drop:
+              - ALL
+            capabilities:
+              add:
+                - NET_ADMIN
+                - NET_RAW
+            readOnlyRootFilesystem: false
+            runAsGroup: 1001
+            runAsNonRoot: true
+            runAsUser: 1001
+            seccompProfile:
+              type: RuntimeDefault
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8082
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8082
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 5m
+              memory: 64Mi
+            limits:
+              cpu: 10m
+              memory: 128Mi

@@ -3,7 +3,7 @@ package svcipraw
 import (
 	"net"
 
-	xslice "github.com/frantjc/x/slice"
+	xslices "github.com/frantjc/x/slices"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -13,7 +13,7 @@ type ServiceIPAddressGetter []net.IP
 
 // GetServiceIPAddresses implements svcip.ServiceIPAddressGetter.
 func (g ServiceIPAddressGetter) GetServiceIPAddresses(*corev1.Service) []net.IP {
-	return xslice.Map(g, func(ip net.IP, _ int) net.IP {
+	return xslices.Map(g, func(ip net.IP, _ int) net.IP {
 		return ip
 	})
 }

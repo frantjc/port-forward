@@ -1,9 +1,0 @@
-services:
-  portfwd:
-    image: ghcr.io/frantjc/port-forward
-    build: .
-    command:
-      - -VV
-      - --kubeconfig=/root/.kube/config
-    volumes:
-      - ${KUBECONFIG:-~/.kube/config}:/root/.kube/config:ro

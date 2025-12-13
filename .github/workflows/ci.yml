@@ -1,18 +1,21 @@
 name: CI
 on:
+  workflow_dispatch: {}
   push:
     branches:
       - main
   pull_request:
     branches:
       - main
+permissions:
+  contents: read
 jobs:
   ci:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-go@v5
+      - uses: frantjc/actions/setup-tool@v1
         with:
-          go-version-file: go.mod
-      - uses: golangci/golangci-lint-action@v9.2.0
-      - run: make test
+          repository: dagger/dagger
+          version: v0.19.7
+      - run: dagger checks

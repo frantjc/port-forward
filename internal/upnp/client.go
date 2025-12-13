@@ -7,7 +7,7 @@ import (
 	"net"
 	"time"
 
-	xslice "github.com/frantjc/x/slice"
+	xslices "github.com/frantjc/x/slices"
 	"github.com/huin/goupnp"
 	"github.com/huin/goupnp/dcps/internetgateway1"
 	"github.com/huin/goupnp/dcps/internetgateway2"
@@ -131,7 +131,7 @@ type NewClientOpts struct {
 type NewClientOpt func(*NewClientOpts)
 
 func castToGoUPnPClients[client GoUPnPClient](clients []client) []GoUPnPClient {
-	return xslice.Map(clients, func(cli client, _ int) GoUPnPClient {
+	return xslices.Map(clients, func(cli client, _ int) GoUPnPClient {
 		return cli
 	})
 }

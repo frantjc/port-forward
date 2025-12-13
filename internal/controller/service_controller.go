@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"strconv"
@@ -10,7 +11,7 @@ import (
 	"github.com/frantjc/port-forward/internal/portfwd"
 	"github.com/frantjc/port-forward/internal/svcip"
 	"github.com/frantjc/port-forward/internal/upnp"
-	xslice "github.com/frantjc/x/slice"
+	xslices "github.com/frantjc/x/slices"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -52,7 +53,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	var (
 		_              = logr.FromContextOrDiscard(ctx)
 		service        = &corev1.Service{}
-		requeueAfter   = time.Minute * 15
+		requeueAfter   = time.Hour
 		portMap        = map[int32]int32{}
 		tmpPortNameMap = map[string]any{}
 		portNameMap    = map[string]int32{}
@@ -131,7 +132,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	if ipAddresses := r.GetServiceIPAddresses(service); len(ipAddresses) > 0 {
 		for _, port := range service.Spec.Ports {
-			portName := xslice.Coalesce(port.Name, fmt.Sprint(port.Port))
+			portName := cmp.Or(port.Name, fmt.Sprint(port.Port))
 
 			externalPort, ok := portMap[port.Port]
 			if !ok {
@@ -186,7 +187,7 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 }
 
 func isTruthy(s string) bool {
-	return xslice.Some([]string{"yes", "y", "1", "true"}, func(truthy string, _ int) bool {
+	return xslices.Some([]string{"yes", "y", "1", "true"}, func(truthy string, _ int) bool {
 		return strings.EqualFold(s, truthy)
 	})
 }
