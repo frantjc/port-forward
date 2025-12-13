@@ -67,7 +67,7 @@ spec:
       hostNetwork: true
       containers:
         - name: portfwd
-          image: ghcr.io/frantjc/port-forward:0.1.8
+          image: ghcr.io/frantjc/port-forward:0.1.9
           args:
             - --leader-elect
             - --probe-addr=$(POD_IP):8082
